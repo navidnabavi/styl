@@ -43,16 +43,7 @@ pub fn validate_root(style: &Style) -> Vec<Diagnostic> {
         }
     }
 
-    // bearing: 0..=360
-    if let Some(bearing) = style.bearing {
-        if !(0.0..=360.0).contains(&bearing) {
-            diags.push(Diagnostic::error(
-                "E002",
-                "bearing",
-                format!("bearing {} is out of range [0, 360]", bearing),
-            ));
-        }
-    }
+    // bearing: spec normalizes automatically; no strict range check needed
 
     // pitch: 0..=85
     if let Some(pitch) = style.pitch {
@@ -128,10 +119,11 @@ mod tests {
     }
 
     #[test]
-    fn test_invalid_bearing() {
-        let style = parse(r#"{"version":8,"bearing":400,"sources":{},"layers":[]}"#);
+    fn test_negative_bearing_accepted() {
+        // Spec normalizes bearing; -90 is equivalent to 270 and must not error
+        let style = parse(r#"{"version":8,"bearing":-90,"sources":{},"layers":[]}"#);
         let diags = validate_root(&style);
-        assert!(diags.iter().any(|d| d.code == "E002" && d.path == "bearing"));
+        assert!(!diags.iter().any(|d| d.path == "bearing"));
     }
 
     #[test]

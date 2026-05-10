@@ -137,13 +137,55 @@ impl LintRule for LegacyFilter {
     }
 }
 
-/// Detect legacy filter: array starting with comparison operators like "==", "!=", "in", "!in", etc.
+/// Detect legacy filter syntax.
+///
+/// Unambiguously legacy operators: `==`, `!=`, `>`, `>=`, `<`, `<=`, `!in`, `!has`, `none`.
+/// These are not valid modern expression operators.
+///
+/// `in` and `has` overlap with modern expressions but the legacy forms use a string key as
+/// the second argument (not an expression array), which is also how modern `has`/`in` look.
+/// We flag them only when they appear as the root operator of a filter (not nested in `all`/`any`).
+///
+/// `all` and `any` are both legacy combinators and modern expression operators. We detect legacy
+/// usage by checking if any sub-item is itself a legacy filter (recursive).
 fn is_legacy_filter(value: &serde_json::Value) -> bool {
     if let Some(arr) = value.as_array() {
         if let Some(first) = arr.first() {
             if let Some(op) = first.as_str() {
-                return matches!(op, "==" | "!=" | ">" | ">=" | "<" | "<=" | "in" | "!in"
-                    | "has" | "!has" | "all" | "any" | "none");
+                return match op {
+                    // Unambiguously legacy — not valid modern expression operators
+                    "!=" | "!in" | "!has" | "none" => true,
+                    // These compare/lookup operators existed in legacy AND modern forms.
+                    // In legacy context they take a string key as 2nd arg, not an expression.
+                    // Heuristic: if 2nd arg is a plain string (not an expression array), assume legacy.
+                    "==" | ">" | ">=" | "<" | "<=" | "in" | "has" => {
+                        arr.get(1).map(|a| a.is_string()).unwrap_or(false)
+                    }
+                    // "all"/"any" are legacy combinators only when sub-items are *unambiguously* legacy
+                    // (use strict check to avoid false positives on modern ["all", expr1, expr2]).
+                    "all" | "any" => arr[1..].iter().any(is_unambiguously_legacy_filter),
+                    _ => false,
+                };
+            }
+        }
+    }
+    false
+}
+
+/// Strict legacy filter check used for sub-items of "all"/"any".
+/// Only flags operators that are *not* valid modern expressions.
+fn is_unambiguously_legacy_filter(value: &serde_json::Value) -> bool {
+    if let Some(arr) = value.as_array() {
+        if let Some(first) = arr.first() {
+            if let Some(op) = first.as_str() {
+                return match op {
+                    "!=" | "!in" | "!has" | "none" => true,
+                    "==" | ">" | ">=" | "<" | "<=" | "in" => {
+                        // Legacy: 2nd arg is a plain string property key
+                        arr.get(1).map(|a| a.is_string()).unwrap_or(false)
+                    }
+                    _ => false,
+                };
             }
         }
     }
@@ -224,6 +266,20 @@ mod tests {
     fn test_expression_filter_ok() {
         let style = parse(r#"{"version":8,"sources":{"s":{"type":"geojson","data":null}},"layers":[{"id":"l","type":"fill","source":"s","filter":["match",["get","class"],["road"],true,false]}]}"#);
         assert!(LegacyFilter.check(&style).is_empty());
+    }
+
+    #[test]
+    fn test_modern_all_filter_not_flagged() {
+        // ["all", expr1, expr2] is a valid modern expression filter — must not be flagged
+        let style = parse(r#"{"version":8,"sources":{"s":{"type":"geojson","data":null}},"layers":[{"id":"l","type":"fill","source":"s","filter":["all",["==",["get","class"],"road"],["has","name"]]}]}"#);
+        assert!(LegacyFilter.check(&style).is_empty());
+    }
+
+    #[test]
+    fn test_legacy_all_filter_flagged() {
+        // ["all", ["==", "class", "road"], ...] — second arg of inner item is plain string → legacy
+        let style = parse(r#"{"version":8,"sources":{"s":{"type":"geojson","data":null}},"layers":[{"id":"l","type":"fill","source":"s","filter":["all",["==","class","road"],["in","type","primary","secondary"]]}]}"#);
+        assert!(LegacyFilter.check(&style).iter().any(|d| d.code == "W011"));
     }
 
     #[test]

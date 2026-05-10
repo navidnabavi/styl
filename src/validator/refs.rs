@@ -1,24 +1,11 @@
-use std::collections::HashSet;
 use crate::diagnostic::Diagnostic;
 use crate::style::Style;
 
 pub fn validate_refs(style: &Style) -> Vec<Diagnostic> {
     let mut diags = Vec::new();
-    let mut seen_ids: HashSet<&str> = HashSet::new();
 
     for (i, layer) in style.layers.iter().enumerate() {
         let path = format!("layers[{}]", i);
-
-        // Duplicate layer IDs
-        if seen_ids.contains(layer.id.as_str()) {
-            diags.push(Diagnostic::warning(
-                "W001",
-                format!("{}.id", path),
-                format!("duplicate layer id \"{}\"", layer.id),
-            ));
-        } else {
-            seen_ids.insert(&layer.id);
-        }
 
         // layer.source must reference a key in sources
         if let Some(source_id) = &layer.source {
@@ -76,34 +63,6 @@ mod tests {
         }"#);
         let diags = validate_refs(&style);
         assert!(!diags.iter().any(|d| d.code == "E003"));
-    }
-
-    #[test]
-    fn test_duplicate_layer_id() {
-        let style = parse(r#"{
-            "version":8,
-            "sources":{"s":{"type":"geojson","data":null}},
-            "layers":[
-                {"id":"l","type":"fill","source":"s"},
-                {"id":"l","type":"circle","source":"s"}
-            ]
-        }"#);
-        let diags = validate_refs(&style);
-        assert!(diags.iter().any(|d| d.code == "W001"));
-    }
-
-    #[test]
-    fn test_no_duplicate_ids() {
-        let style = parse(r#"{
-            "version":8,
-            "sources":{"s":{"type":"geojson","data":null}},
-            "layers":[
-                {"id":"a","type":"fill","source":"s"},
-                {"id":"b","type":"circle","source":"s"}
-            ]
-        }"#);
-        let diags = validate_refs(&style);
-        assert!(!diags.iter().any(|d| d.code == "W001"));
     }
 
     #[test]

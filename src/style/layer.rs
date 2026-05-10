@@ -40,6 +40,7 @@ pub enum LayerType {
     Heatmap,
     Hillshade,
     Sky,
+    ColorRelief,
 }
 
 impl std::fmt::Display for LayerType {
@@ -55,6 +56,7 @@ impl std::fmt::Display for LayerType {
             LayerType::Heatmap => "heatmap",
             LayerType::Hillshade => "hillshade",
             LayerType::Sky => "sky",
+            LayerType::ColorRelief => "color-relief",
         };
         write!(f, "{}", s)
     }

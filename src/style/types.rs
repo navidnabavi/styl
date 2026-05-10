@@ -244,6 +244,7 @@ mod tests {
             ("heatmap", LayerType::Heatmap),
             ("hillshade", LayerType::Hillshade),
             ("sky", LayerType::Sky),
+            ("color-relief", LayerType::ColorRelief),
         ];
         for (type_str, expected) in &types {
             let lt: LayerType = serde_json::from_value(serde_json::json!(type_str)).unwrap();

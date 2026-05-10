@@ -52,17 +52,25 @@ fn valid_paint_props(lt: &LayerType) -> &'static [&'static str] {
             "sky-gradient-center", "sky-gradient-radius", "sky-gradient",
             "sky-atmosphere-halo-color", "sky-atmosphere-color", "sky-opacity",
         ],
+        LayerType::ColorRelief => &[
+            "color-relief-color-range", "color-relief-opacity",
+        ],
     }
 }
 
 /// Layout properties valid per layer type
 fn valid_layout_props(lt: &LayerType) -> &'static [&'static str] {
     match lt {
-        LayerType::Background | LayerType::Hillshade | LayerType::Sky | LayerType::Raster => &[
+        LayerType::Background | LayerType::Hillshade | LayerType::Sky
+        | LayerType::Raster | LayerType::FillExtrusion | LayerType::Heatmap
+        | LayerType::ColorRelief => &[
             "visibility",
         ],
-        LayerType::Fill | LayerType::FillExtrusion | LayerType::Circle | LayerType::Heatmap => &[
-            "visibility",
+        LayerType::Fill => &[
+            "visibility", "fill-sort-key",
+        ],
+        LayerType::Circle => &[
+            "visibility", "circle-sort-key",
         ],
         LayerType::Line => &[
             "visibility", "line-cap", "line-join", "line-miter-limit",

@@ -146,10 +146,17 @@ fn validate_operator(op: &str, args: &[Value], path: &str, depth: usize) -> Vec<
             }
         }
 
-        // --- Math (binary) ---
-        "+" | "-" | "*" | "/" | "%" | "^" => {
-            if args.len() < 3 {
-                diags.push(arity_error(path, op, "at least 2 arguments", args.len() - 1));
+        // --- Math ---
+        // "+" and "*" are variadic (0+ args); "-" allows 1 arg (negation) or 2+ (subtraction)
+        "+" | "*" => {}
+        "-" => {
+            if args.len() < 2 {
+                diags.push(arity_error(path, op, "1 or 2 arguments", args.len() - 1));
+            }
+        }
+        "/" | "%" | "^" => {
+            if args.len() != 3 {
+                diags.push(arity_error(path, op, "exactly 2 arguments", args.len() - 1));
             }
         }
         // Math (unary)
@@ -232,6 +239,53 @@ fn validate_operator(op: &str, args: &[Value], path: &str, depth: usize) -> Vec<
         "zoom" | "pitch" | "distance-from-center" => {
             if args.len() != 1 {
                 diags.push(arity_error(path, op, "0 arguments", args.len() - 1));
+            }
+        }
+
+        // --- Color output ---
+        "to-rgba" => {
+            if args.len() != 2 {
+                diags.push(arity_error(path, op, "1 argument (color)", args.len() - 1));
+            }
+        }
+
+        // --- Image ---
+        "resolved-image" => {
+            if args.len() < 2 {
+                diags.push(arity_error(path, op, "at least 1 argument", args.len() - 1));
+            }
+        }
+
+        // --- Script / i18n ---
+        "is-supported-script" => {
+            if args.len() != 2 {
+                diags.push(arity_error(path, op, "1 argument (string)", args.len() - 1));
+            }
+        }
+        "collator" => {
+            if args.len() != 2 {
+                diags.push(arity_error(path, op, "1 argument (options object)", args.len() - 1));
+            }
+        }
+
+        // --- Config ---
+        "config" => {
+            if args.len() < 2 {
+                diags.push(arity_error(path, op, "at least 1 argument", args.len() - 1));
+            }
+        }
+
+        // --- Distance ---
+        "distance" => {
+            if args.len() != 2 {
+                diags.push(arity_error(path, op, "1 argument (GeoJSON geometry)", args.len() - 1));
+            }
+        }
+
+        // --- Random ---
+        "random" => {
+            if args.len() < 3 || args.len() > 4 {
+                diags.push(arity_error(path, op, "2 or 3 arguments (min, max[, seed])", args.len() - 1));
             }
         }
 
