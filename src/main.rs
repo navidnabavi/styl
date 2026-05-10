@@ -10,6 +10,7 @@ mod validator;
 
 use cli::{Cli, Command, OutputFormat};
 use diagnostic::{render_github, render_human, render_json};
+use linter::config::{discover_config, load_config, Config};
 use style::Style;
 
 fn main() {
@@ -19,6 +20,9 @@ fn main() {
 }
 
 fn run(cli: &Cli) -> i32 {
+    // Load config
+    let config = load_effective_config(cli);
+
     // Read input
     let (content, filename) = match read_input(cli) {
         Ok(v) => v,
@@ -71,7 +75,7 @@ fn run(cli: &Cli) -> i32 {
             linter::run_all(&style)
         }
         Command::Fmt { check, .. } => {
-            let formatted = formatter::format_style(&value, 2);
+            let formatted = formatter::format_style(&value, config.format.indent);
             if *check {
                 if formatted != content {
                     if !cli.quiet {
@@ -127,4 +131,21 @@ fn get_file_path(cli: &Cli) -> Option<&std::path::PathBuf> {
         Command::Lint { file } => file.as_ref(),
         Command::Validate { file } => file.as_ref(),
     }
+}
+
+fn load_effective_config(cli: &Cli) -> Config {
+    // Explicit --config path takes priority
+    if let Some(config_path) = &cli.config {
+        return load_config(config_path).unwrap_or_else(|e| {
+            eprintln!("warning: {}", e);
+            Config::default()
+        });
+    }
+    // Auto-discover from the file's directory or cwd
+    let start = get_file_path(cli)
+        .and_then(|p| p.parent().map(|d| d.to_path_buf()))
+        .unwrap_or_else(|| std::env::current_dir().unwrap_or_default());
+    discover_config(&start)
+        .and_then(|p| load_config(&p).ok())
+        .unwrap_or_default()
 }

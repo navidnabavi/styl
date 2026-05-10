@@ -16,4 +16,5 @@ thiserror  = "1"
 indexmap   = { version = "2", features = ["serde"] }
 
 [dev-dependencies]
-insta = "1"
+insta      = "1"
+tempfile   = "3"
