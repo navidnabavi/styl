@@ -10,6 +10,7 @@ mod validator;
 
 use cli::{Cli, Command, OutputFormat};
 use diagnostic::{render_github, render_human, render_json};
+use style::Style;
 
 fn main() {
     let cli = Cli::parse();
@@ -38,6 +39,8 @@ fn run(cli: &Cli) -> i32 {
 
     let diagnostics: Vec<diagnostic::Diagnostic> = match &cli.command {
         Command::Check { .. } | Command::Lint { .. } | Command::Validate { .. } => {
+            // Parse into Style for future validators/linters
+            let _style: Result<Style, _> = serde_json::from_value(value.clone());
             // Validators and linters will be wired in subsequent tasks
             vec![]
         }

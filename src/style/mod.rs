@@ -1,1 +1,4 @@
-// Style types will be added in subsequent tasks
+pub mod layer;
+pub mod types;
+
+pub use types::Style;
