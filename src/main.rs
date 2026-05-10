@@ -71,18 +71,19 @@ fn run(cli: &Cli) -> i32 {
             linter::run_all(&style)
         }
         Command::Fmt { check, .. } => {
-            // Pretty-print round-trip for now
-            let formatted = serde_json::to_string_pretty(&value).unwrap();
+            let formatted = formatter::format_style(&value, 2);
             if *check {
                 if formatted != content {
-                    eprintln!("error: {} would be reformatted", filename);
+                    if !cli.quiet {
+                        eprintln!("{} would be reformatted", filename);
+                    }
                     return 1;
                 }
             } else {
                 if let Some(path) = get_file_path(cli) {
-                    std::fs::write(path, &formatted).unwrap_or_else(|e| {
+                    std::fs::write(path, &formatted).map_err(|e| {
                         eprintln!("error: {}", e);
-                    });
+                    }).ok();
                 } else {
                     print!("{}", formatted);
                 }
