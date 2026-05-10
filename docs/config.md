@@ -45,6 +45,8 @@ Valid values:
 
 Rule codes: `W001` through `W012`. See [Linter Rules](linter.md) for descriptions.
 
+When no `.mapboxlintrc` is present (or a rule has no override), all rules default to `"warn"`.
+
 ## `[format]`
 
 Formatter settings used by `styl fmt`.

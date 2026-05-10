@@ -29,9 +29,9 @@ A layer has `"visibility": "none"` in its `layout`. This may be intentional but 
 
 ---
 
-## W003 — Unused layer
+## W003 — Unused source
 
-A layer's `source` is not referenced by any other layer and the layer itself doesn't render anything visible. This heuristic flags potential dead layers.
+A source is defined in the top-level `sources` map but not referenced by any layer's `source` field.
 
 ---
 

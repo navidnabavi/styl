@@ -56,5 +56,5 @@ Running `styl fmt` twice produces the same result. If `--check` passes once, it 
 ## Limitations
 
 - Does not reformat expression values (preserved as-is)
-- Does not sort layer array or sources map entries (insertion order preserved)
+- Layer array order and sources map entry order are preserved (only keys *within* each layer/source object are reordered)
 - `tileSize` is not yet in the source key order (appears in the unknown-key alphabetical section)

@@ -25,7 +25,7 @@ Deeply nested expressions (> 10 levels) trigger [W006](linter.md#w006--deep-expr
 |----------|------|-------------|
 | `all` | 1+ | Logical AND |
 | `any` | 1+ | Logical OR |
-| `none` | 1+ | Logical NOR |
+| `none` | 1+ | Logical NOR _(legacy filter syntax — deprecated; use `!` + `any` in expressions)_ |
 | `!` | 1 | Logical NOT |
 | `case` | 3+ | If/elif/else — condition, result pairs + fallback |
 | `match` | 4+ | Switch — input, label, output pairs + fallback |
@@ -118,7 +118,6 @@ Deeply nested expressions (> 10 levels) trigger [W006](linter.md#w006--deep-expr
 | `rgba` | 4 | Create color from RGBA values |
 | `hsl` | 3 | Create color from HSL values |
 | `hsla` | 4 | Create color from HSLA values |
-| `color-mix` | 3 | Mix two colors |
 
 ---
 

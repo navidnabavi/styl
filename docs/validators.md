@@ -41,6 +41,8 @@ Out-of-range values on root properties:
 
 ## E003 — Layer source not found
 
+> Note: Two distinct checks share the E003 code — one on the root `glyphs` field (above), one on layer `source` references (below).
+
 A layer references a `source` ID that doesn't exist in the top-level `sources` map.
 
 ```json
