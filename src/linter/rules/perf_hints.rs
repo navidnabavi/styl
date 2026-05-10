@@ -1,0 +1,253 @@
+use crate::diagnostic::Diagnostic;
+use crate::linter::LintRule;
+use crate::style::{layer::LayerType, Style};
+
+/// W007: text-field is empty string
+pub struct EmptyTextField;
+
+impl LintRule for EmptyTextField {
+    fn code(&self) -> &'static str { "W007" }
+
+    fn check(&self, style: &Style) -> Vec<Diagnostic> {
+        let mut diags = Vec::new();
+        for (i, layer) in style.layers.iter().enumerate() {
+            if let Some(layout) = &layer.layout {
+                if let Some(tf) = layout.get("text-field") {
+                    if tf.as_str() == Some("") {
+                        diags.push(
+                            Diagnostic::warning(
+                                "W007",
+                                format!("layers[{}].layout.text-field", i),
+                                format!("layer \"{}\" has an empty text-field", layer.id),
+                            )
+                            .with_hint("remove text-field or provide a value such as [\"get\", \"name\"]"),
+                        );
+                    }
+                }
+            }
+        }
+        diags
+    }
+}
+
+/// W008: icon-image references a sprite name that looks like a placeholder
+pub struct PlaceholderIconImage;
+
+const PLACEHOLDER_PATTERNS: &[&str] = &["TODO", "FIXME", "placeholder", "example", "test-icon", "my-icon"];
+
+impl LintRule for PlaceholderIconImage {
+    fn code(&self) -> &'static str { "W008" }
+
+    fn check(&self, style: &Style) -> Vec<Diagnostic> {
+        let mut diags = Vec::new();
+        for (i, layer) in style.layers.iter().enumerate() {
+            if let Some(layout) = &layer.layout {
+                if let Some(icon) = layout.get("icon-image") {
+                    if let Some(name) = icon.as_str() {
+                        if PLACEHOLDER_PATTERNS.iter().any(|p| name.contains(p)) {
+                            diags.push(
+                                Diagnostic::warning(
+                                    "W008",
+                                    format!("layers[{}].layout.icon-image", i),
+                                    format!("icon-image \"{}\" looks like a placeholder", name),
+                                )
+                                .with_hint("replace with the actual sprite name from your sprite sheet"),
+                            );
+                        }
+                    }
+                }
+            }
+        }
+        diags
+    }
+}
+
+/// W009: Layer count exceeds 200 (performance hint)
+pub struct LayerCountHint;
+
+impl LintRule for LayerCountHint {
+    fn code(&self) -> &'static str { "W009" }
+
+    fn check(&self, style: &Style) -> Vec<Diagnostic> {
+        if style.layers.len() > 200 {
+            vec![Diagnostic::info(
+                "W009",
+                "layers",
+                format!("style has {} layers (>200); consider merging layers for better performance", style.layers.len()),
+            )]
+        } else {
+            vec![]
+        }
+    }
+}
+
+/// W010: line-dasharray contains a zero-length segment
+pub struct ZeroDasharray;
+
+impl LintRule for ZeroDasharray {
+    fn code(&self) -> &'static str { "W010" }
+
+    fn check(&self, style: &Style) -> Vec<Diagnostic> {
+        let mut diags = Vec::new();
+        for (i, layer) in style.layers.iter().enumerate() {
+            if let Some(paint) = &layer.paint {
+                if let Some(da) = paint.get("line-dasharray") {
+                    if let Some(arr) = da.as_array() {
+                        if arr.iter().any(|v| v.as_f64() == Some(0.0)) {
+                            diags.push(
+                                Diagnostic::warning(
+                                    "W010",
+                                    format!("layers[{}].paint.line-dasharray", i),
+                                    "line-dasharray contains a zero-length segment",
+                                )
+                                .with_hint("all segments in line-dasharray must be > 0"),
+                            );
+                        }
+                    }
+                }
+            }
+        }
+        diags
+    }
+}
+
+/// W011: Deprecated legacy filter syntax (array-based, not expression-based)
+pub struct LegacyFilter;
+
+impl LintRule for LegacyFilter {
+    fn code(&self) -> &'static str { "W011" }
+
+    fn check(&self, style: &Style) -> Vec<Diagnostic> {
+        let mut diags = Vec::new();
+        for (i, layer) in style.layers.iter().enumerate() {
+            if let Some(filter) = &layer.filter {
+                if is_legacy_filter(filter) {
+                    diags.push(
+                        Diagnostic::warning(
+                            "W011",
+                            format!("layers[{}].filter", i),
+                            format!("layer \"{}\" uses deprecated legacy filter syntax", layer.id),
+                        )
+                        .with_hint("migrate to expression-based filters: https://maplibre.org/maplibre-style-spec/expressions/"),
+                    );
+                }
+            }
+        }
+        diags
+    }
+}
+
+/// Detect legacy filter: array starting with comparison operators like "==", "!=", "in", "!in", etc.
+fn is_legacy_filter(value: &serde_json::Value) -> bool {
+    if let Some(arr) = value.as_array() {
+        if let Some(first) = arr.first() {
+            if let Some(op) = first.as_str() {
+                return matches!(op, "==" | "!=" | ">" | ">=" | "<" | "<=" | "in" | "!in"
+                    | "has" | "!has" | "all" | "any" | "none");
+            }
+        }
+    }
+    false
+}
+
+/// W012: raster-resampling not set on raster layers (defaults may cause blur)
+pub struct RasterResampling;
+
+impl LintRule for RasterResampling {
+    fn code(&self) -> &'static str { "W012" }
+
+    fn check(&self, style: &Style) -> Vec<Diagnostic> {
+        let mut diags = Vec::new();
+        for (i, layer) in style.layers.iter().enumerate() {
+            if layer.layer_type == LayerType::Raster {
+                let has_resampling = layer.paint.as_ref()
+                    .and_then(|p| p.get("raster-resampling"))
+                    .is_some();
+                if !has_resampling {
+                    diags.push(
+                        Diagnostic::info(
+                            "W012",
+                            format!("layers[{}].paint", i),
+                            format!("raster layer \"{}\" does not set raster-resampling", layer.id),
+                        )
+                        .with_hint("set \"raster-resampling\": \"nearest\" to avoid blur when overzooming"),
+                    );
+                }
+            }
+        }
+        diags
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    fn parse(json: &str) -> Style { serde_json::from_str(json).unwrap() }
+
+    #[test]
+    fn test_empty_text_field() {
+        let style = parse(r#"{"version":8,"sources":{},"layers":[{"id":"s","type":"symbol","source":"x","layout":{"text-field":""}}]}"#);
+        assert!(EmptyTextField.check(&style).iter().any(|d| d.code == "W007"));
+    }
+
+    #[test]
+    fn test_non_empty_text_field_ok() {
+        let style = parse(r#"{"version":8,"sources":{},"layers":[{"id":"s","type":"symbol","source":"x","layout":{"text-field":"hello"}}]}"#);
+        assert!(EmptyTextField.check(&style).is_empty());
+    }
+
+    #[test]
+    fn test_placeholder_icon() {
+        let style = parse(r#"{"version":8,"sources":{},"layers":[{"id":"s","type":"symbol","source":"x","layout":{"icon-image":"my-icon-24"}}]}"#);
+        assert!(PlaceholderIconImage.check(&style).iter().any(|d| d.code == "W008"));
+    }
+
+    #[test]
+    fn test_zero_dasharray() {
+        let style = parse(r#"{"version":8,"sources":{"s":{"type":"geojson","data":null}},"layers":[{"id":"l","type":"line","source":"s","paint":{"line-dasharray":[2,0,2]}}]}"#);
+        assert!(ZeroDasharray.check(&style).iter().any(|d| d.code == "W010"));
+    }
+
+    #[test]
+    fn test_valid_dasharray() {
+        let style = parse(r#"{"version":8,"sources":{"s":{"type":"geojson","data":null}},"layers":[{"id":"l","type":"line","source":"s","paint":{"line-dasharray":[2,4]}}]}"#);
+        assert!(ZeroDasharray.check(&style).is_empty());
+    }
+
+    #[test]
+    fn test_legacy_filter() {
+        let style = parse(r#"{"version":8,"sources":{"s":{"type":"geojson","data":null}},"layers":[{"id":"l","type":"fill","source":"s","filter":["==","class","road"]}]}"#);
+        assert!(LegacyFilter.check(&style).iter().any(|d| d.code == "W011"));
+    }
+
+    #[test]
+    fn test_expression_filter_ok() {
+        let style = parse(r#"{"version":8,"sources":{"s":{"type":"geojson","data":null}},"layers":[{"id":"l","type":"fill","source":"s","filter":["match",["get","class"],["road"],true,false]}]}"#);
+        assert!(LegacyFilter.check(&style).is_empty());
+    }
+
+    #[test]
+    fn test_raster_missing_resampling() {
+        let style = parse(r#"{"version":8,"sources":{"s":{"type":"raster","url":"mapbox://x"}},"layers":[{"id":"r","type":"raster","source":"s"}]}"#);
+        assert!(RasterResampling.check(&style).iter().any(|d| d.code == "W012"));
+    }
+
+    #[test]
+    fn test_raster_with_resampling_ok() {
+        let style = parse(r#"{"version":8,"sources":{"s":{"type":"raster","url":"mapbox://x"}},"layers":[{"id":"r","type":"raster","source":"s","paint":{"raster-resampling":"nearest"}}]}"#);
+        assert!(RasterResampling.check(&style).is_empty());
+    }
+
+    #[test]
+    fn test_layer_count_hint() {
+        // Build 201 layers
+        let layers: Vec<serde_json::Value> = (0..201)
+            .map(|i| serde_json::json!({"id": format!("l{}", i), "type": "background"}))
+            .collect();
+        let style_json = serde_json::json!({
+            "version": 8, "sources": {}, "layers": layers
+        });
+        let style: Style = serde_json::from_value(style_json).unwrap();
+        assert!(LayerCountHint.check(&style).iter().any(|d| d.code == "W009"));
+    }
+}

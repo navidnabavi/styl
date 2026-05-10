@@ -38,7 +38,19 @@ fn run(cli: &Cli) -> i32 {
     };
 
     let diagnostics: Vec<diagnostic::Diagnostic> = match &cli.command {
-        Command::Check { .. } | Command::Validate { .. } => {
+        Command::Check { .. } => {
+            let style: Style = match serde_json::from_value(value.clone()) {
+                Ok(s) => s,
+                Err(e) => {
+                    eprintln!("error: style parse failed: {}", e);
+                    return 2;
+                }
+            };
+            let mut diags = validator::run_all(&style);
+            diags.extend(linter::run_all(&style));
+            diags
+        }
+        Command::Validate { .. } => {
             let style: Style = match serde_json::from_value(value.clone()) {
                 Ok(s) => s,
                 Err(e) => {
@@ -56,8 +68,7 @@ fn run(cli: &Cli) -> i32 {
                     return 2;
                 }
             };
-            // Linter wired in subsequent task; run validators for now
-            validator::run_all(&style)
+            linter::run_all(&style)
         }
         Command::Fmt { check, .. } => {
             // Pretty-print round-trip for now
