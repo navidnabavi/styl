@@ -1,7 +1,7 @@
 use clap::Parser;
 use std::process;
 
-use mapbox_style_tool_lib::{cli, diagnostic, formatter, linter, style, validator};
+use styl::{cli, diagnostic, formatter, linter, style, validator};
 
 use cli::{Cli, Command, OutputFormat};
 use diagnostic::{render_github, render_human, render_json};

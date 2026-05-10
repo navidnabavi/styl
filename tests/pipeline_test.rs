@@ -1,5 +1,5 @@
 use std::path::Path;
-use mapbox_style_tool_lib::*;
+use styl::*;
 
 /// Helper: load fixture, run full pipeline, return diagnostics
 fn check_fixture(name: &str) -> Vec<Diagnostic> {

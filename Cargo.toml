@@ -1,14 +1,14 @@
 [package]
-name = "mapbox-style-tool"
+name = "styl"
 version = "0.1.0"
 edition = "2021"
 
 [lib]
-name = "mapbox_style_tool_lib"
+name = "styl"
 path = "src/lib.rs"
 
 [[bin]]
-name = "mapbox-style-tool"
+name = "styl"
 path = "src/main.rs"
 
 [dependencies]

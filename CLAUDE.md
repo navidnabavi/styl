@@ -19,7 +19,7 @@ cargo run -- check --format json style.json  # machine-readable output
 
 ## Architecture
 
-Dual crate: `src/lib.rs` exposes the public API as `mapbox_style_tool_lib`; `src/main.rs` is the CLI binary.
+Dual crate: `src/lib.rs` exposes the public API as `styl`; `src/main.rs` is the CLI binary (`styl`).
 
 **Data flow:** JSON → `serde_json::Value` → `Style` (typed structs) → validators/linters → `Vec<Diagnostic>` → renderer → stdout.
 
@@ -37,7 +37,7 @@ Dual crate: `src/lib.rs` exposes the public API as `mapbox_style_tool_lib`; `src
 - `root.rs` — version==8, center/zoom/bearing/pitch ranges, glyphs placeholders
 - `sources.rs` — required fields per source type (url or tiles)
 - `layers.rs` — `valid_paint_props(LayerType)` and `valid_layout_props(LayerType)` hardcoded allowlists; source-layer required for vector sources
-- `refs.rs` — source IDs exist in sources map, sprite non-empty, duplicate layer IDs (W001)
+- `refs.rs` — source IDs exist in sources map, sprite non-empty
 
 ### Linter (W-codes, best practices)
 
@@ -68,12 +68,11 @@ Divergence between specs tracked in `src/style/spec.rs` (constants only — not 
 
 ## Known gaps (from spec review)
 
-- `W005` rule logic is inverted — never fires
-- `W001` emitted by both `validator/refs.rs` and `linter/rules/duplicate_ids.rs` (duplicate)
-- `"-"` unary negation `["-", x]` incorrectly rejected by arity check
-- `W011` false-positives on modern `["all", ...]` / `["any", ...]` expression filters
-- `color-relief` layer type not in `LayerType` enum (deserialization fails)
-- Missing expression operators: `to-rgba`, `resolved-image`, `is-supported-script`, `collator`, `config`, `distance`, `random`
-- `fill-sort-key` and `circle-sort-key` missing from layout allowlists
 - `sprite` only accepts string; spec also allows `[{id, url}]` array form
-- Source `scheme`, `encoding`, zoom ranges, and `bounds` not validated
+- Source `scheme` (must be `"xyz"|"tms"`) and raster-dem `encoding` not enum-validated
+- Source and layer `minzoom`/`maxzoom` ranges not validated
+- Source `bounds` array `[sw_lng, sw_lat, ne_lng, ne_lat]` not validated
+- GeoJSON `data` field logically required but not validated
+- Filter expressions not validated (only legacy syntax detected via W011)
+- `tileSize` missing from `SOURCE_KEY_ORDER` in formatter
+- Newer root properties (`sky`, `projection`, `roll`, `font-faces`) not in `ROOT_KEY_ORDER`
