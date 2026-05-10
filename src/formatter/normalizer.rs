@@ -7,7 +7,6 @@ use super::key_order::{
 
 #[derive(Copy, Clone)]
 enum Context {
-    Root,
     Layer,
     Source,
     PaintLayout,
@@ -18,20 +17,6 @@ fn normalize_value(value: &Value, ctx: Context) -> Value {
     match value {
         Value::Object(obj) => {
             let ordered: IndexMap<String, Value> = match ctx {
-                Context::Root => {
-                    let reordered = reorder_object(obj, ROOT_KEY_ORDER);
-                    reordered
-                        .into_iter()
-                        .map(|(k, v)| {
-                            let child_ctx = match k.as_str() {
-                                "layers" => Context::Other, // handled below per-element
-                                "sources" => Context::Other,
-                                _ => Context::Other,
-                            };
-                            (k, normalize_value(&v, child_ctx))
-                        })
-                        .collect()
-                }
                 Context::Layer => {
                     reorder_object(obj, LAYER_KEY_ORDER)
                         .into_iter()
