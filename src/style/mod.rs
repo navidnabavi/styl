@@ -1,3 +1,4 @@
+pub mod expression;
 pub mod layer;
 pub mod types;
 
