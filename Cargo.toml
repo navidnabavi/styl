@@ -3,6 +3,10 @@ name = "mapbox-style-tool"
 version = "0.1.0"
 edition = "2021"
 
+[lib]
+name = "mapbox_style_tool_lib"
+path = "src/lib.rs"
+
 [[bin]]
 name = "mapbox-style-tool"
 path = "src/main.rs"

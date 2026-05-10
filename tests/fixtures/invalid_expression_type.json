@@ -1,0 +1,17 @@
+{
+  "version": 8,
+  "sources": {
+    "s": {"type": "vector", "url": "mapbox://x"}
+  },
+  "layers": [
+    {
+      "id": "roads",
+      "type": "line",
+      "source": "s",
+      "source-layer": "road",
+      "paint": {
+        "line-width": ["rgb"]
+      }
+    }
+  ]
+}

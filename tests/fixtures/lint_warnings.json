@@ -1,0 +1,47 @@
+{
+  "version": 8,
+  "sources": {
+    "used": {"type": "geojson", "data": null},
+    "unused": {"type": "geojson", "data": null}
+  },
+  "layers": [
+    {
+      "id": "dup",
+      "type": "fill",
+      "source": "used",
+      "paint": {"fill-color": "red"}
+    },
+    {
+      "id": "dup",
+      "type": "fill",
+      "source": "used",
+      "layout": {"visibility": "none"},
+      "paint": {"fill-color": "blue"}
+    },
+    {
+      "id": "bad-stops",
+      "type": "line",
+      "source": "used",
+      "paint": {
+        "line-width": {"stops": [[20, 4], [10, 2], [0, 1]]}
+      }
+    },
+    {
+      "id": "symbol-empty",
+      "type": "symbol",
+      "source": "used",
+      "layout": {
+        "text-field": "",
+        "icon-image": "my-icon-placeholder"
+      }
+    },
+    {
+      "id": "dashed",
+      "type": "line",
+      "source": "used",
+      "paint": {
+        "line-dasharray": [4, 0, 4]
+      }
+    }
+  ]
+}

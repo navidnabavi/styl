@@ -1,0 +1,11 @@
+{
+  "version": 8,
+  "sources": {},
+  "layers": [
+    {
+      "id": "roads",
+      "type": "line",
+      "source": "my-tileset"
+    }
+  ]
+}

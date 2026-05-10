@@ -1,0 +1,78 @@
+{
+  "version": 8,
+  "name": "Complex Test Style",
+  "center": [0, 0],
+  "zoom": 2,
+  "bearing": 0,
+  "pitch": 0,
+  "glyphs": "https://example.com/fonts/{fontstack}/{range}.pbf",
+  "sources": {
+    "roads": {
+      "type": "vector",
+      "url": "mapbox://mapbox.mapbox-terrain-v2"
+    },
+    "satellite": {
+      "type": "raster",
+      "url": "mapbox://mapbox.satellite",
+      "tileSize": 256
+    },
+    "parks": {
+      "type": "geojson",
+      "data": null
+    }
+  },
+  "layers": [
+    {
+      "id": "background",
+      "type": "background",
+      "paint": {
+        "background-color": "#f0f0f0"
+      }
+    },
+    {
+      "id": "satellite",
+      "type": "raster",
+      "source": "satellite",
+      "paint": {
+        "raster-opacity": 0.8,
+        "raster-resampling": "nearest"
+      }
+    },
+    {
+      "id": "parks-fill",
+      "type": "fill",
+      "source": "parks",
+      "paint": {
+        "fill-color": "#00aa00",
+        "fill-opacity": 0.6
+      }
+    },
+    {
+      "id": "roads-line",
+      "type": "line",
+      "source": "roads",
+      "source-layer": "road",
+      "layout": {
+        "line-cap": "round",
+        "line-join": "round"
+      },
+      "paint": {
+        "line-color": "#888",
+        "line-width": ["interpolate", ["linear"], ["zoom"], 5, 1, 20, 8]
+      }
+    },
+    {
+      "id": "labels",
+      "type": "symbol",
+      "source": "roads",
+      "source-layer": "road_label",
+      "layout": {
+        "text-field": ["get", "name"],
+        "text-font": ["Open Sans Regular"]
+      },
+      "paint": {
+        "text-color": "#333"
+      }
+    }
+  ]
+}

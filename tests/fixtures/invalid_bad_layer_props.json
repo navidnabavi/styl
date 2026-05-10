@@ -1,0 +1,18 @@
+{
+  "version": 8,
+  "sources": {
+    "s": {"type": "vector", "url": "mapbox://x"}
+  },
+  "layers": [
+    {
+      "id": "water",
+      "type": "fill",
+      "source": "s",
+      "source-layer": "water",
+      "paint": {
+        "line-width": 2,
+        "line-color": "#00f"
+      }
+    }
+  ]
+}

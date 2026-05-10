@@ -1,0 +1,22 @@
+{
+  "version": 8,
+  "sources": {
+    "s": {"type": "vector", "url": "mapbox://x"}
+  },
+  "layers": [
+    {
+      "id": "roads",
+      "type": "line",
+      "source": "s",
+      "source-layer": "road",
+      "filter": ["==", "class", "motorway"]
+    },
+    {
+      "id": "parks",
+      "type": "fill",
+      "source": "s",
+      "source-layer": "landuse",
+      "filter": ["in", "class", "park", "forest"]
+    }
+  ]
+}
