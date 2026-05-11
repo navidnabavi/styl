@@ -25,9 +25,11 @@ jobs:
       contents: write
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - uses: dtolnay/rust-toolchain@stable
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.target }}
 
@@ -37,15 +39,20 @@ jobs:
       - name: Package
         shell: bash
         run: |
-          mkdir dist
+          mkdir -p dist
+
+          VERSION="${GITHUB_REF_NAME}"
 
           if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
-            cp target/${{ matrix.target }}/release/styl.exe dist/
+            cp target/${{ matrix.target }}/release/styl.exe \
+              dist/styl-${VERSION}-${{ matrix.target }}.exe
           else
-            cp target/${{ matrix.target }}/release/styl dist/
+            cp target/${{ matrix.target }}/release/styl \
+              dist/styl-${VERSION}-${{ matrix.target }}
           fi
 
-      - name: Release
+      - name: Upload Release Assets
         uses: softprops/action-gh-release@v2
         with:
           files: dist/*
+          generate_release_notes: true
