@@ -40,9 +40,9 @@ jobs:
           mkdir dist
 
           if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
-            cp target/${{ matrix.target }}/release/YOUR_BINARY_NAME.exe dist/
+            cp target/${{ matrix.target }}/release/styl.exe dist/
           else
-            cp target/${{ matrix.target }}/release/YOUR_BINARY_NAME dist/
+            cp target/${{ matrix.target }}/release/styl dist/
           fi
 
       - name: Release
