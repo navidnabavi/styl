@@ -333,6 +333,41 @@ pub fn validate_layers(style: &Style) -> Vec<Diagnostic> {
         }
     }
 
+    // Validate ref layers inherit parent's paint/layout
+    for (i, layer) in style.layers.iter().enumerate() {
+        if let Some(ref_id) = &layer.layer_ref {
+            let path = format!("layers[{}]", i);
+            // Find parent layer by ID
+            if let Some((parent_idx, parent_layer)) = style.layers.iter().enumerate().find(|(_, l)| l.id == *ref_id) {
+                // Validate parent's paint as if on ref layer (inherits parent type)
+                if let Some(parent_paint) = &parent_layer.paint {
+                    if let Some(obj) = parent_paint.as_object() {
+                        let valid = valid_paint_props(&parent_layer.layer_type);
+                        for (key, value) in obj {
+                            if valid.contains(&key.as_str()) {
+                                let prop_path = format!("{}.paint.{}", path, key);
+                                diags.extend(validate_prop_value(key, value, &prop_path));
+                            }
+                        }
+                    }
+                }
+
+                // Validate parent's layout as if on ref layer (inherits parent type)
+                if let Some(parent_layout) = &parent_layer.layout {
+                    if let Some(obj) = parent_layout.as_object() {
+                        let valid = valid_layout_props(&parent_layer.layer_type);
+                        for (key, value) in obj {
+                            if valid.contains(&key.as_str()) {
+                                let prop_path = format!("{}.layout.{}", path, key);
+                                diags.extend(validate_prop_value(key, value, &prop_path));
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     diags
 }
 
@@ -619,4 +654,5 @@ mod tests {
             .iter()
             .any(|d| d.code == "E018" && d.path.contains("visibility")));
     }
+
 }
