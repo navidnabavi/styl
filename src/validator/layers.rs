@@ -1,5 +1,6 @@
 use crate::diagnostic::Diagnostic;
 use crate::style::{expression::{is_legacy_filter, validate_expression}, layer::LayerType, types::Source, Style};
+use crate::validator::prop_values::validate_prop_value;
 
 /// Paint properties valid per layer type
 fn valid_paint_props(lt: &LayerType) -> &'static [&'static str] {
@@ -197,6 +198,26 @@ pub fn validate_layers(style: &Style) -> Vec<Diagnostic> {
                 }
             }
         }
+
+        // Validate paint property values (E018)
+        if let Some(paint) = &layer.paint {
+            if let Some(obj) = paint.as_object() {
+                for (key, value) in obj {
+                    let prop_path = format!("{}.paint.{}", path, key);
+                    diags.extend(validate_prop_value(key, value, &prop_path));
+                }
+            }
+        }
+
+        // Validate layout property values (E018)
+        if let Some(layout) = &layer.layout {
+            if let Some(obj) = layout.as_object() {
+                for (key, value) in obj {
+                    let prop_path = format!("{}.layout.{}", path, key);
+                    diags.extend(validate_prop_value(key, value, &prop_path));
+                }
+            }
+        }
     }
 
     diags
@@ -351,5 +372,87 @@ mod tests {
         }"#);
         let diags = validate_layers(&style);
         assert!(diags.iter().any(|d| d.code == "E007" && d.path.contains("text-field")));
+    }
+
+    #[test]
+    fn test_paint_value_opacity_out_of_range() {
+        let style = parse(r#"{
+            "version":8,
+            "sources":{"s":{"type":"vector","url":"mapbox://x"}},
+            "layers":[{
+                "id":"l","type":"fill","source":"s","source-layer":"water",
+                "paint":{"fill-opacity":2.0}
+            }]
+        }"#);
+        let diags = validate_layers(&style);
+        assert!(diags.iter().any(|d| d.code == "E018" && d.path.contains("fill-opacity")));
+    }
+
+    #[test]
+    fn test_paint_value_enum_invalid() {
+        let style = parse(r#"{
+            "version":8,
+            "sources":{"s":{"type":"vector","url":"mapbox://x"}},
+            "layers":[{
+                "id":"l","type":"line","source":"s","source-layer":"roads",
+                "layout":{"line-cap":"flat"}
+            }]
+        }"#);
+        let diags = validate_layers(&style);
+        assert!(diags.iter().any(|d| d.code == "E018" && d.path.contains("line-cap")));
+    }
+
+    #[test]
+    fn test_paint_value_color_invalid() {
+        let style = parse(r#"{
+            "version":8,
+            "sources":{"s":{"type":"vector","url":"mapbox://x"}},
+            "layers":[{
+                "id":"l","type":"fill","source":"s","source-layer":"water",
+                "paint":{"fill-color":"notacolor"}
+            }]
+        }"#);
+        let diags = validate_layers(&style);
+        assert!(diags.iter().any(|d| d.code == "E018" && d.path.contains("fill-color")));
+    }
+
+    #[test]
+    fn test_paint_value_expression_not_e018() {
+        let style = parse(r#"{
+            "version":8,
+            "sources":{"s":{"type":"vector","url":"mapbox://x"}},
+            "layers":[{
+                "id":"l","type":"fill","source":"s","source-layer":"water",
+                "paint":{"fill-opacity":["get","opacity"]}
+            }]
+        }"#);
+        let diags = validate_layers(&style);
+        assert!(!diags.iter().any(|d| d.code == "E018"));
+    }
+
+    #[test]
+    fn test_paint_value_color_named_valid() {
+        let style = parse(r#"{
+            "version":8,
+            "sources":{"s":{"type":"vector","url":"mapbox://x"}},
+            "layers":[{
+                "id":"l","type":"fill","source":"s","source-layer":"water",
+                "paint":{"fill-color":"red"}
+            }]
+        }"#);
+        assert!(validate_layers(&style).iter().all(|d| d.code != "E018"));
+    }
+
+    #[test]
+    fn test_layout_value_visibility_invalid() {
+        let style = parse(r#"{
+            "version":8,
+            "sources":{},"layers":[{
+                "id":"bg","type":"background",
+                "layout":{"visibility":"hidden"}
+            }]
+        }"#);
+        let diags = validate_layers(&style);
+        assert!(diags.iter().any(|d| d.code == "E018" && d.path.contains("visibility")));
     }
 }
