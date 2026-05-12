@@ -405,6 +405,43 @@ fn validate_operator(op: &str, args: &[Value], path: &str, depth: usize) -> Vec<
     diags
 }
 
+/// Returns true if the value looks like a legacy (pre-expression) filter.
+/// Used by W011 to warn and by the validator to skip expression validation.
+pub fn is_legacy_filter(value: &Value) -> bool {
+    if let Some(arr) = value.as_array() {
+        if let Some(first) = arr.first() {
+            if let Some(op) = first.as_str() {
+                return match op {
+                    "!=" | "!in" | "!has" | "none" => true,
+                    "==" | ">" | ">=" | "<" | "<=" | "in" | "has" => {
+                        arr.get(1).map(|a| a.is_string()).unwrap_or(false)
+                    }
+                    "all" | "any" => arr[1..].iter().any(is_unambiguously_legacy_filter),
+                    _ => false,
+                };
+            }
+        }
+    }
+    false
+}
+
+fn is_unambiguously_legacy_filter(value: &Value) -> bool {
+    if let Some(arr) = value.as_array() {
+        if let Some(first) = arr.first() {
+            if let Some(op) = first.as_str() {
+                return match op {
+                    "!=" | "!in" | "!has" | "none" => true,
+                    "==" | ">" | ">=" | "<" | "<=" | "in" => {
+                        arr.get(1).map(|a| a.is_string()).unwrap_or(false)
+                    }
+                    _ => false,
+                };
+            }
+        }
+    }
+    false
+}
+
 fn arity_error(path: &str, op: &str, expected: &str, got: usize) -> Diagnostic {
     Diagnostic::error(
         "E021",

@@ -107,9 +107,15 @@ A layout property is not valid for the layer's type. See [Layer Properties](laye
 
 ---
 
-## E008 — Empty sprite
+## E008 — Invalid sprite
 
-`sprite` must be a non-empty string (or array form — see Known Gaps below).
+`sprite` must be a non-empty URL string, or a non-empty array of `{id, url}` entries where both `id` and `url` are non-empty strings.
+
+```json
+{ "sprite": "" }
+{ "sprite": [] }
+{ "sprite": [{"id": "", "url": "https://example.com/sprite"}] }
+```
 
 ---
 
@@ -119,6 +125,73 @@ Vector, raster, and raster-dem sources must have either a `url` field or a non-e
 
 ```json
 { "type": "vector" }
+```
+
+---
+
+## E011 — Invalid source scheme
+
+Source `scheme` must be `"xyz"` or `"tms"`. Applies to vector and raster sources.
+
+```json
+{ "type": "vector", "url": "...", "scheme": "bad" }
+```
+
+---
+
+## E012 — Invalid raster-dem encoding
+
+`raster-dem` source `encoding` must be `"terrarium"`, `"mapbox"`, or `"none"`.
+
+```json
+{ "type": "raster-dem", "url": "...", "encoding": "bad" }
+```
+
+---
+
+## E013 — Invalid source zoom range
+
+Source `minzoom`/`maxzoom` must be in `[0, 22]`. `minzoom` must be ≤ `maxzoom`. Applies to vector, raster, raster-dem, and geojson sources.
+
+```json
+{ "type": "vector", "url": "...", "minzoom": 25 }
+```
+
+---
+
+## E014 — Invalid layer zoom range
+
+Layer `minzoom`/`maxzoom` must be in `[0, 24]`. `minzoom` must be ≤ `maxzoom`.
+
+```json
+{ "id": "roads", "type": "line", "source": "s", "minzoom": 10, "maxzoom": 5 }
+```
+
+---
+
+## E015 — Invalid source bounds
+
+Source `bounds` must be `[sw_lng, sw_lat, ne_lng, ne_lat]` where longitudes are in `[-180, 180]`, latitudes in `[-90, 90]`, and sw ≤ ne. Applies to vector, raster, and raster-dem sources.
+
+```json
+{ "type": "vector", "url": "...", "bounds": [-200, -90, 180, 90] }
+```
+
+---
+
+## E016 — Missing GeoJSON data
+
+GeoJSON sources must have a `data` field set to a GeoJSON object (inline) or a URL string. Absent or `null` values are not valid.
+
+```json
+{ "type": "geojson" }
+{ "type": "geojson", "data": null }
+```
+
+Valid forms:
+```json
+{ "type": "geojson", "data": "https://example.com/data.geojson" }
+{ "type": "geojson", "data": { "type": "FeatureCollection", "features": [] } }
 ```
 
 ---
@@ -135,11 +208,18 @@ An expression's first element is not a recognized operator. See [Expressions](ex
 
 ---
 
+## E017 — Invalid inline GeoJSON
+
+When `data` is an inline JSON object, it must be a valid GeoJSON object per RFC 7946 (FeatureCollection, Feature, or Geometry).
+
+```json
+{ "type": "geojson", "data": { "type": "NotAGeoJsonType" } }
+```
+
+URL strings are not validated at lint time (remote resource).
+
+---
+
 ## Known Gaps
 
-- `sprite` array form `[{id, url}, ...]` not yet validated (only string form)
-- Source `scheme` (`xyz`|`tms`) and raster-dem `encoding` not enum-validated
-- Source/layer `minzoom`/`maxzoom` ranges not validated
-- Source `bounds` array not validated
-- GeoJSON `data` field not required by validator
-- Filter expressions not validated (only heuristically detected by W011)
+None.
