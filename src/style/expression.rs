@@ -121,7 +121,7 @@ fn validate_operator(op: &str, args: &[Value], path: &str, depth: usize) -> Vec<
         // --- Decision ---
         "case" => {
             // case: [condition, output, condition, output, ..., fallback]
-            if args.len() < 4 || args.len() % 2 != 0 {
+            if args.len() < 4 || !args.len().is_multiple_of(2) {
                 diags.push(Diagnostic::error(
                     "E021",
                     path,
@@ -374,7 +374,7 @@ fn validate_operator(op: &str, args: &[Value], path: &str, depth: usize) -> Vec<
         // --- Binding ---
         "let" => {
             // let: [name, value, name, value, ..., expression] — at least 3, odd length
-            if args.len() < 4 || args.len() % 2 != 0 {
+            if args.len() < 4 || !args.len().is_multiple_of(2) {
                 diags.push(Diagnostic::error(
                     "E021",
                     path,
