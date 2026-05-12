@@ -2,7 +2,10 @@ use clap::{Parser, Subcommand, ValueEnum};
 use std::path::PathBuf;
 
 #[derive(Parser)]
-#[command(name = "mapbox-style-tool", about = "Lint, validate, and format Mapbox/MapLibre GL Style JSON")]
+#[command(
+    name = "mapbox-style-tool",
+    about = "Lint, validate, and format Mapbox/MapLibre GL Style JSON"
+)]
 pub struct Cli {
     #[command(subcommand)]
     pub command: Command,
@@ -31,9 +34,7 @@ pub struct Cli {
 #[derive(Subcommand)]
 pub enum Command {
     /// Validate + lint a style file
-    Check {
-        file: Option<PathBuf>,
-    },
+    Check { file: Option<PathBuf> },
     /// Format a style file in-place
     Fmt {
         file: Option<PathBuf>,
@@ -42,13 +43,9 @@ pub enum Command {
         check: bool,
     },
     /// Run only lint rules
-    Lint {
-        file: Option<PathBuf>,
-    },
+    Lint { file: Option<PathBuf> },
     /// Run only spec validation
-    Validate {
-        file: Option<PathBuf>,
-    },
+    Validate { file: Option<PathBuf> },
 }
 
 #[derive(Clone, ValueEnum, Debug)]

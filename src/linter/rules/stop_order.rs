@@ -1,13 +1,15 @@
-use serde_json::Value;
 use crate::diagnostic::Diagnostic;
 use crate::linter::LintRule;
 use crate::style::Style;
+use serde_json::Value;
 
 /// W004: stop values not in ascending order in a stops array
 pub struct StopOrder;
 
 impl LintRule for StopOrder {
-    fn code(&self) -> &'static str { "W004" }
+    fn code(&self) -> &'static str {
+        "W004"
+    }
 
     fn check(&self, style: &Style) -> Vec<Diagnostic> {
         let mut diags = Vec::new();
@@ -35,11 +37,13 @@ fn check_value_stops(value: &Value, path: &str, diags: &mut Vec<Diagnostic>) {
             // Check if this looks like a stops array: [[stop, value], ...]
             if arr.iter().all(|item| {
                 item.is_array()
-                    && item.as_array().map(|a| a.len() >= 2 && a[0].is_number()).unwrap_or(false)
-            }) && arr.len() >= 2 {
-                let stops: Vec<f64> = arr.iter()
-                    .filter_map(|item| item[0].as_f64())
-                    .collect();
+                    && item
+                        .as_array()
+                        .map(|a| a.len() >= 2 && a[0].is_number())
+                        .unwrap_or(false)
+            }) && arr.len() >= 2
+            {
+                let stops: Vec<f64> = arr.iter().filter_map(|item| item[0].as_f64()).collect();
                 for window in stops.windows(2) {
                     if window[0] >= window[1] {
                         diags.push(
@@ -69,27 +73,33 @@ mod tests {
     use super::*;
     use serde_json::json;
 
-    fn parse(json: &str) -> Style { serde_json::from_str(json).unwrap() }
+    fn parse(json: &str) -> Style {
+        serde_json::from_str(json).unwrap()
+    }
 
     #[test]
     fn test_ascending_stops_ok() {
-        let style = parse(r#"{
+        let style = parse(
+            r#"{
             "version":8,"sources":{},"layers":[{
                 "id":"bg","type":"background",
                 "paint":{"background-opacity":{"stops":[[0,0],[10,0.5],[20,1]]}}
             }]
-        }"#);
+        }"#,
+        );
         assert!(StopOrder.check(&style).is_empty());
     }
 
     #[test]
     fn test_descending_stops_warn() {
-        let style = parse(r#"{
+        let style = parse(
+            r#"{
             "version":8,"sources":{},"layers":[{
                 "id":"bg","type":"background",
                 "paint":{"background-opacity":{"stops":[[20,1],[10,0.5],[0,0]]}}
             }]
-        }"#);
+        }"#,
+        );
         let diags = StopOrder.check(&style);
         assert!(diags.iter().any(|d| d.code == "W004"));
     }

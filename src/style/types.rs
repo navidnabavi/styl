@@ -1,7 +1,7 @@
+use crate::style::layer::Layer;
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use crate::style::layer::Layer;
 
 /// Sprite value: either a single URL string or an array of {id, url} entries (MapLibre v8+)
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -241,7 +241,10 @@ mod tests {
         let style: Style = serde_json::from_str(json).unwrap();
         assert_eq!(style.layers.len(), 1);
         assert_eq!(style.layers[0].id, "roads-line");
-        assert_eq!(style.layers[0].layer_type, crate::style::layer::LayerType::Line);
+        assert_eq!(
+            style.layers[0].layer_type,
+            crate::style::layer::LayerType::Line
+        );
     }
 
     #[test]

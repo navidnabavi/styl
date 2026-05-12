@@ -17,30 +17,24 @@ fn normalize_value(value: &Value, ctx: Context) -> Value {
     match value {
         Value::Object(obj) => {
             let ordered: IndexMap<String, Value> = match ctx {
-                Context::Layer => {
-                    reorder_object(obj, LAYER_KEY_ORDER)
-                        .into_iter()
-                        .map(|(k, v)| {
-                            let child_ctx = match k.as_str() {
-                                "paint" | "layout" => Context::PaintLayout,
-                                _ => Context::Other,
-                            };
-                            (k, normalize_value(&v, child_ctx))
-                        })
-                        .collect()
-                }
-                Context::Source => {
-                    reorder_object(obj, SOURCE_KEY_ORDER)
-                        .into_iter()
-                        .map(|(k, v)| (k, normalize_value(&v, Context::Other)))
-                        .collect()
-                }
-                Context::PaintLayout => {
-                    sort_paint_layout(obj)
-                        .into_iter()
-                        .map(|(k, v)| (k, normalize_value(&v, Context::Other)))
-                        .collect()
-                }
+                Context::Layer => reorder_object(obj, LAYER_KEY_ORDER)
+                    .into_iter()
+                    .map(|(k, v)| {
+                        let child_ctx = match k.as_str() {
+                            "paint" | "layout" => Context::PaintLayout,
+                            _ => Context::Other,
+                        };
+                        (k, normalize_value(&v, child_ctx))
+                    })
+                    .collect(),
+                Context::Source => reorder_object(obj, SOURCE_KEY_ORDER)
+                    .into_iter()
+                    .map(|(k, v)| (k, normalize_value(&v, Context::Other)))
+                    .collect(),
+                Context::PaintLayout => sort_paint_layout(obj)
+                    .into_iter()
+                    .map(|(k, v)| (k, normalize_value(&v, Context::Other)))
+                    .collect(),
                 Context::Other => obj
                     .iter()
                     .map(|(k, v)| (k.clone(), normalize_value(v, Context::Other)))
@@ -55,7 +49,11 @@ fn normalize_value(value: &Value, ctx: Context) -> Value {
             // Sources object handled above. For arrays, we need the parent context.
             // Since we don't know if this array is "layers" or "sources.x.tiles" etc,
             // we apply Layer context only when explicitly called from Root with key "layers".
-            Value::Array(arr.iter().map(|v| normalize_value(v, Context::Other)).collect())
+            Value::Array(
+                arr.iter()
+                    .map(|v| normalize_value(v, Context::Other))
+                    .collect(),
+            )
         }
         other => other.clone(),
     }
@@ -72,7 +70,11 @@ fn normalize_root(value: &Value) -> Value {
                 let normalized = match k.as_str() {
                     "layers" => {
                         if let Value::Array(arr) = &v {
-                            Value::Array(arr.iter().map(|l| normalize_value(l, Context::Layer)).collect())
+                            Value::Array(
+                                arr.iter()
+                                    .map(|l| normalize_value(l, Context::Layer))
+                                    .collect(),
+                            )
                         } else {
                             v
                         }
@@ -81,7 +83,9 @@ fn normalize_root(value: &Value) -> Value {
                         if let Value::Object(sources) = &v {
                             let normalized_sources: serde_json::Map<String, Value> = sources
                                 .iter()
-                                .map(|(id, src)| (id.clone(), normalize_value(src, Context::Source)))
+                                .map(|(id, src)| {
+                                    (id.clone(), normalize_value(src, Context::Source))
+                                })
                                 .collect();
                             Value::Object(normalized_sources)
                         } else {
@@ -186,7 +190,12 @@ mod tests {
         });
         let formatted = format_style(&style, 2);
         let parsed: Value = serde_json::from_str(&formatted).unwrap();
-        let keys: Vec<&str> = parsed.as_object().unwrap().keys().map(|s| s.as_str()).collect();
+        let keys: Vec<&str> = parsed
+            .as_object()
+            .unwrap()
+            .keys()
+            .map(|s| s.as_str())
+            .collect();
         // version must come before name which must come before sources, layers
         let vi = keys.iter().position(|&k| k == "version").unwrap();
         let ni = keys.iter().position(|&k| k == "name").unwrap();
@@ -210,7 +219,12 @@ mod tests {
         let formatted = format_style(&style, 2);
         let parsed: Value = serde_json::from_str(&formatted).unwrap();
         let layer = &parsed["layers"][0];
-        let keys: Vec<&str> = layer.as_object().unwrap().keys().map(|s| s.as_str()).collect();
+        let keys: Vec<&str> = layer
+            .as_object()
+            .unwrap()
+            .keys()
+            .map(|s| s.as_str())
+            .collect();
         let ii = keys.iter().position(|&k| k == "id").unwrap();
         let ti = keys.iter().position(|&k| k == "type").unwrap();
         assert!(ii < ti);
@@ -229,7 +243,12 @@ mod tests {
         let formatted = format_style(&style, 2);
         let parsed: Value = serde_json::from_str(&formatted).unwrap();
         let paint = &parsed["layers"][0]["paint"];
-        let keys: Vec<&str> = paint.as_object().unwrap().keys().map(|s| s.as_str()).collect();
+        let keys: Vec<&str> = paint
+            .as_object()
+            .unwrap()
+            .keys()
+            .map(|s| s.as_str())
+            .collect();
         assert_eq!(keys, vec!["fill-antialias", "fill-color", "fill-opacity"]);
     }
 

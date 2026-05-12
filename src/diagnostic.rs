@@ -19,15 +19,37 @@ pub enum Severity {
 
 impl Diagnostic {
     pub fn error(code: &'static str, path: impl Into<String>, message: impl Into<String>) -> Self {
-        Self { severity: Severity::Error, code, message: message.into(), path: path.into(), hint: None }
+        Self {
+            severity: Severity::Error,
+            code,
+            message: message.into(),
+            path: path.into(),
+            hint: None,
+        }
     }
 
-    pub fn warning(code: &'static str, path: impl Into<String>, message: impl Into<String>) -> Self {
-        Self { severity: Severity::Warning, code, message: message.into(), path: path.into(), hint: None }
+    pub fn warning(
+        code: &'static str,
+        path: impl Into<String>,
+        message: impl Into<String>,
+    ) -> Self {
+        Self {
+            severity: Severity::Warning,
+            code,
+            message: message.into(),
+            path: path.into(),
+            hint: None,
+        }
     }
 
     pub fn info(code: &'static str, path: impl Into<String>, message: impl Into<String>) -> Self {
-        Self { severity: Severity::Info, code, message: message.into(), path: path.into(), hint: None }
+        Self {
+            severity: Severity::Info,
+            code,
+            message: message.into(),
+            path: path.into(),
+            hint: None,
+        }
     }
 
     pub fn with_hint(mut self, hint: impl Into<String>) -> Self {

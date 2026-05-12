@@ -6,7 +6,9 @@ use crate::style::{expression::validate_expression, Style};
 pub struct ExpressionDepth;
 
 impl LintRule for ExpressionDepth {
-    fn code(&self) -> &'static str { "W006" }
+    fn code(&self) -> &'static str {
+        "W006"
+    }
 
     fn check(&self, style: &Style) -> Vec<Diagnostic> {
         let mut diags = Vec::new();
@@ -57,7 +59,15 @@ mod tests {
 
     #[test]
     fn test_shallow_expression_no_warning() {
-        let style = style_with_paint(json!(["interpolate", ["linear"], ["zoom"], 0, 0.0, 10, 1.0]));
+        let style = style_with_paint(json!([
+            "interpolate",
+            ["linear"],
+            ["zoom"],
+            0,
+            0.0,
+            10,
+            1.0
+        ]));
         assert!(ExpressionDepth.check(&style).is_empty());
     }
 

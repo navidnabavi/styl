@@ -23,18 +23,27 @@ fn valid_minimal_has_no_diagnostics() {
     assert!(
         diags.is_empty(),
         "expected no diagnostics for valid_minimal.json, got: {:?}",
-        diags.iter().map(|d| format!("[{}] {}", d.code, d.message)).collect::<Vec<_>>()
+        diags
+            .iter()
+            .map(|d| format!("[{}] {}", d.code, d.message))
+            .collect::<Vec<_>>()
     );
 }
 
 #[test]
 fn valid_complex_has_no_errors() {
     let diags = check_fixture("valid_complex.json");
-    let errors: Vec<_> = diags.iter().filter(|d| d.severity == Severity::Error).collect();
+    let errors: Vec<_> = diags
+        .iter()
+        .filter(|d| d.severity == Severity::Error)
+        .collect();
     assert!(
         errors.is_empty(),
         "expected no errors for valid_complex.json, got: {:?}",
-        errors.iter().map(|d| format!("[{}] {}: {}", d.code, d.path, d.message)).collect::<Vec<_>>()
+        errors
+            .iter()
+            .map(|d| format!("[{}] {}: {}", d.code, d.path, d.message))
+            .collect::<Vec<_>>()
     );
 }
 
@@ -64,7 +73,9 @@ fn lint_warnings_triggers_w001_w002_w003_w004_w007_w008_w010() {
     for expected in &["W001", "W002", "W003", "W004", "W007", "W008", "W010"] {
         assert!(
             codes.contains(expected),
-            "expected {} in lint_warnings.json, got: {:?}", expected, codes
+            "expected {} in lint_warnings.json, got: {:?}",
+            expected,
+            codes
         );
     }
 }

@@ -1,5 +1,5 @@
-use serde_json::Value;
 use crate::diagnostic::Diagnostic;
+use serde_json::Value;
 
 /// The expected output type of an expression
 #[derive(Debug, Clone, PartialEq)]
@@ -39,8 +39,12 @@ pub fn validate_expression(value: &Value, path: &str, depth: usize) -> Vec<Diagn
 
     if depth > 10 {
         diags.push(
-            Diagnostic::warning("W006", path, "expression depth exceeds 10 (performance impact)")
-                .with_hint("simplify nested expressions or use intermediate variables with 'let'"),
+            Diagnostic::warning(
+                "W006",
+                path,
+                "expression depth exceeds 10 (performance impact)",
+            )
+            .with_hint("simplify nested expressions or use intermediate variables with 'let'"),
         );
         // Don't recurse further — avoid noise
         return diags;
@@ -142,7 +146,12 @@ fn validate_operator(op: &str, args: &[Value], path: &str, depth: usize) -> Vec<
         }
         "within" => {
             if args.len() != 2 {
-                diags.push(arity_error(path, op, "1 argument (GeoJSON polygon)", args.len() - 1));
+                diags.push(arity_error(
+                    path,
+                    op,
+                    "1 argument (GeoJSON polygon)",
+                    args.len() - 1,
+                ));
             }
         }
 
@@ -160,15 +169,20 @@ fn validate_operator(op: &str, args: &[Value], path: &str, depth: usize) -> Vec<
             }
         }
         // Math (unary)
-        "abs" | "ceil" | "floor" | "round" | "sqrt" | "log2" | "log10" | "ln"
-        | "sin" | "cos" | "tan" | "asin" | "acos" | "atan" => {
+        "abs" | "ceil" | "floor" | "round" | "sqrt" | "log2" | "log10" | "ln" | "sin" | "cos"
+        | "tan" | "asin" | "acos" | "atan" => {
             if args.len() != 2 {
                 diags.push(arity_error(path, op, "1 argument", args.len() - 1));
             }
         }
         "min" | "max" => {
             if args.len() < 3 {
-                diags.push(arity_error(path, op, "at least 2 arguments", args.len() - 1));
+                diags.push(arity_error(
+                    path,
+                    op,
+                    "at least 2 arguments",
+                    args.len() - 1,
+                ));
             }
         }
 
@@ -194,7 +208,12 @@ fn validate_operator(op: &str, args: &[Value], path: &str, depth: usize) -> Vec<
         // --- String ---
         "concat" => {
             if args.len() < 3 {
-                diags.push(arity_error(path, op, "at least 2 arguments", args.len() - 1));
+                diags.push(arity_error(
+                    path,
+                    op,
+                    "at least 2 arguments",
+                    args.len() - 1,
+                ));
             }
         }
         "downcase" | "upcase" | "to-string" => {
@@ -204,29 +223,54 @@ fn validate_operator(op: &str, args: &[Value], path: &str, depth: usize) -> Vec<
         }
         "number-format" => {
             if args.len() < 3 {
-                diags.push(arity_error(path, op, "at least 2 arguments", args.len() - 1));
+                diags.push(arity_error(
+                    path,
+                    op,
+                    "at least 2 arguments",
+                    args.len() - 1,
+                ));
             }
         }
 
         // --- Color ---
         "rgb" => {
             if args.len() != 4 {
-                diags.push(arity_error(path, op, "3 arguments (r, g, b)", args.len() - 1));
+                diags.push(arity_error(
+                    path,
+                    op,
+                    "3 arguments (r, g, b)",
+                    args.len() - 1,
+                ));
             }
         }
         "rgba" => {
             if args.len() != 5 {
-                diags.push(arity_error(path, op, "4 arguments (r, g, b, a)", args.len() - 1));
+                diags.push(arity_error(
+                    path,
+                    op,
+                    "4 arguments (r, g, b, a)",
+                    args.len() - 1,
+                ));
             }
         }
         "hsl" => {
             if args.len() != 4 {
-                diags.push(arity_error(path, op, "3 arguments (h, s, l)", args.len() - 1));
+                diags.push(arity_error(
+                    path,
+                    op,
+                    "3 arguments (h, s, l)",
+                    args.len() - 1,
+                ));
             }
         }
         "hsla" => {
             if args.len() != 5 {
-                diags.push(arity_error(path, op, "4 arguments (h, s, l, a)", args.len() - 1));
+                diags.push(arity_error(
+                    path,
+                    op,
+                    "4 arguments (h, s, l, a)",
+                    args.len() - 1,
+                ));
             }
         }
         "to-color" => {
@@ -264,7 +308,12 @@ fn validate_operator(op: &str, args: &[Value], path: &str, depth: usize) -> Vec<
         }
         "collator" => {
             if args.len() != 2 {
-                diags.push(arity_error(path, op, "1 argument (options object)", args.len() - 1));
+                diags.push(arity_error(
+                    path,
+                    op,
+                    "1 argument (options object)",
+                    args.len() - 1,
+                ));
             }
         }
 
@@ -278,14 +327,24 @@ fn validate_operator(op: &str, args: &[Value], path: &str, depth: usize) -> Vec<
         // --- Distance ---
         "distance" => {
             if args.len() != 2 {
-                diags.push(arity_error(path, op, "1 argument (GeoJSON geometry)", args.len() - 1));
+                diags.push(arity_error(
+                    path,
+                    op,
+                    "1 argument (GeoJSON geometry)",
+                    args.len() - 1,
+                ));
             }
         }
 
         // --- Random ---
         "random" => {
             if args.len() < 3 || args.len() > 4 {
-                diags.push(arity_error(path, op, "2 or 3 arguments (min, max[, seed])", args.len() - 1));
+                diags.push(arity_error(
+                    path,
+                    op,
+                    "2 or 3 arguments (min, max[, seed])",
+                    args.len() - 1,
+                ));
             }
         }
 
@@ -325,7 +384,11 @@ fn validate_operator(op: &str, args: &[Value], path: &str, depth: usize) -> Vec<
         }
         "var" => {
             if args.len() != 2 || !args[1].is_string() {
-                diags.push(Diagnostic::error("E021", path, "\"var\" requires a single string argument (variable name)"));
+                diags.push(Diagnostic::error(
+                    "E021",
+                    path,
+                    "\"var\" requires a single string argument (variable name)",
+                ));
             }
         }
 
@@ -349,7 +412,11 @@ fn validate_operator(op: &str, args: &[Value], path: &str, depth: usize) -> Vec<
         // --- Feature data ---
         "feature-state" => {
             if args.len() != 2 || !args[1].is_string() {
-                diags.push(Diagnostic::error("E021", path, "\"feature-state\" requires a single string key argument"));
+                diags.push(Diagnostic::error(
+                    "E021",
+                    path,
+                    "\"feature-state\" requires a single string key argument",
+                ));
             }
         }
         "geometry-type" | "id" | "line-progress" | "properties" | "accumulated" => {
@@ -379,7 +446,12 @@ fn validate_operator(op: &str, args: &[Value], path: &str, depth: usize) -> Vec<
         }
         "cubic-bezier" => {
             if args.len() != 5 {
-                diags.push(arity_error(path, op, "4 arguments (x1, y1, x2, y2)", args.len() - 1));
+                diags.push(arity_error(
+                    path,
+                    op,
+                    "4 arguments (x1, y1, x2, y2)",
+                    args.len() - 1,
+                ));
             }
         }
 

@@ -1,96 +1,184 @@
 use crate::diagnostic::Diagnostic;
-use crate::style::{expression::{is_legacy_filter, validate_expression}, layer::LayerType, types::Source, Style};
+use crate::style::{
+    expression::{is_legacy_filter, validate_expression},
+    layer::LayerType,
+    types::Source,
+    Style,
+};
 use crate::validator::prop_values::validate_prop_value;
 
 /// Paint properties valid per layer type
 fn valid_paint_props(lt: &LayerType) -> &'static [&'static str] {
     match lt {
         LayerType::Background => &[
-            "background-color", "background-pattern", "background-opacity",
+            "background-color",
+            "background-pattern",
+            "background-opacity",
         ],
         LayerType::Fill => &[
-            "fill-antialias", "fill-opacity", "fill-color", "fill-outline-color",
-            "fill-translate", "fill-translate-anchor", "fill-pattern",
+            "fill-antialias",
+            "fill-opacity",
+            "fill-color",
+            "fill-outline-color",
+            "fill-translate",
+            "fill-translate-anchor",
+            "fill-pattern",
         ],
         LayerType::FillExtrusion => &[
-            "fill-extrusion-opacity", "fill-extrusion-color", "fill-extrusion-translate",
-            "fill-extrusion-translate-anchor", "fill-extrusion-pattern",
-            "fill-extrusion-height", "fill-extrusion-base", "fill-extrusion-vertical-gradient",
+            "fill-extrusion-opacity",
+            "fill-extrusion-color",
+            "fill-extrusion-translate",
+            "fill-extrusion-translate-anchor",
+            "fill-extrusion-pattern",
+            "fill-extrusion-height",
+            "fill-extrusion-base",
+            "fill-extrusion-vertical-gradient",
         ],
         LayerType::Line => &[
-            "line-opacity", "line-color", "line-translate", "line-translate-anchor",
-            "line-width", "line-gap-width", "line-offset", "line-blur",
-            "line-dasharray", "line-pattern", "line-gradient",
+            "line-opacity",
+            "line-color",
+            "line-translate",
+            "line-translate-anchor",
+            "line-width",
+            "line-gap-width",
+            "line-offset",
+            "line-blur",
+            "line-dasharray",
+            "line-pattern",
+            "line-gradient",
         ],
         LayerType::Symbol => &[
-            "icon-opacity", "icon-color", "icon-halo-color", "icon-halo-width",
-            "icon-halo-blur", "icon-translate", "icon-translate-anchor",
-            "text-opacity", "text-color", "text-halo-color", "text-halo-width",
-            "text-halo-blur", "text-translate", "text-translate-anchor",
+            "icon-opacity",
+            "icon-color",
+            "icon-halo-color",
+            "icon-halo-width",
+            "icon-halo-blur",
+            "icon-translate",
+            "icon-translate-anchor",
+            "text-opacity",
+            "text-color",
+            "text-halo-color",
+            "text-halo-width",
+            "text-halo-blur",
+            "text-translate",
+            "text-translate-anchor",
         ],
         LayerType::Raster => &[
-            "raster-opacity", "raster-hue-rotate", "raster-brightness-min",
-            "raster-brightness-max", "raster-saturation", "raster-contrast",
-            "raster-resampling", "raster-fade-duration",
+            "raster-opacity",
+            "raster-hue-rotate",
+            "raster-brightness-min",
+            "raster-brightness-max",
+            "raster-saturation",
+            "raster-contrast",
+            "raster-resampling",
+            "raster-fade-duration",
         ],
         LayerType::Circle => &[
-            "circle-radius", "circle-color", "circle-blur", "circle-opacity",
-            "circle-translate", "circle-translate-anchor", "circle-pitch-scale",
-            "circle-pitch-alignment", "circle-stroke-width", "circle-stroke-color",
+            "circle-radius",
+            "circle-color",
+            "circle-blur",
+            "circle-opacity",
+            "circle-translate",
+            "circle-translate-anchor",
+            "circle-pitch-scale",
+            "circle-pitch-alignment",
+            "circle-stroke-width",
+            "circle-stroke-color",
             "circle-stroke-opacity",
         ],
         LayerType::Heatmap => &[
-            "heatmap-radius", "heatmap-weight", "heatmap-intensity",
-            "heatmap-color", "heatmap-opacity",
+            "heatmap-radius",
+            "heatmap-weight",
+            "heatmap-intensity",
+            "heatmap-color",
+            "heatmap-opacity",
         ],
         LayerType::Hillshade => &[
-            "hillshade-illumination-direction", "hillshade-illumination-anchor",
-            "hillshade-exaggeration", "hillshade-shadow-color", "hillshade-highlight-color",
+            "hillshade-illumination-direction",
+            "hillshade-illumination-anchor",
+            "hillshade-exaggeration",
+            "hillshade-shadow-color",
+            "hillshade-highlight-color",
             "hillshade-accent-color",
         ],
         LayerType::Sky => &[
-            "sky-type", "sky-atmosphere-sun", "sky-atmosphere-sun-intensity",
-            "sky-gradient-center", "sky-gradient-radius", "sky-gradient",
-            "sky-atmosphere-halo-color", "sky-atmosphere-color", "sky-opacity",
+            "sky-type",
+            "sky-atmosphere-sun",
+            "sky-atmosphere-sun-intensity",
+            "sky-gradient-center",
+            "sky-gradient-radius",
+            "sky-gradient",
+            "sky-atmosphere-halo-color",
+            "sky-atmosphere-color",
+            "sky-opacity",
         ],
-        LayerType::ColorRelief => &[
-            "color-relief-color-range", "color-relief-opacity",
-        ],
+        LayerType::ColorRelief => &["color-relief-color-range", "color-relief-opacity"],
     }
 }
 
 /// Layout properties valid per layer type
 fn valid_layout_props(lt: &LayerType) -> &'static [&'static str] {
     match lt {
-        LayerType::Background | LayerType::Hillshade | LayerType::Sky
-        | LayerType::Raster | LayerType::FillExtrusion | LayerType::Heatmap
-        | LayerType::ColorRelief => &[
-            "visibility",
-        ],
-        LayerType::Fill => &[
-            "visibility", "fill-sort-key",
-        ],
-        LayerType::Circle => &[
-            "visibility", "circle-sort-key",
-        ],
+        LayerType::Background
+        | LayerType::Hillshade
+        | LayerType::Sky
+        | LayerType::Raster
+        | LayerType::FillExtrusion
+        | LayerType::Heatmap
+        | LayerType::ColorRelief => &["visibility"],
+        LayerType::Fill => &["visibility", "fill-sort-key"],
+        LayerType::Circle => &["visibility", "circle-sort-key"],
         LayerType::Line => &[
-            "visibility", "line-cap", "line-join", "line-miter-limit",
-            "line-round-limit", "line-sort-key",
+            "visibility",
+            "line-cap",
+            "line-join",
+            "line-miter-limit",
+            "line-round-limit",
+            "line-sort-key",
         ],
         LayerType::Symbol => &[
             "visibility",
-            "symbol-placement", "symbol-spacing", "symbol-avoid-edges",
-            "symbol-sort-key", "symbol-z-order",
-            "icon-allow-overlap", "icon-ignore-placement", "icon-optional",
-            "icon-rotation-alignment", "icon-size", "icon-text-fit",
-            "icon-text-fit-padding", "icon-image", "icon-rotate", "icon-padding",
-            "icon-keep-upright", "icon-offset", "icon-anchor", "icon-pitch-alignment",
-            "text-pitch-alignment", "text-rotation-alignment", "text-field",
-            "text-font", "text-size", "text-max-width", "text-line-height",
-            "text-letter-spacing", "text-justify", "text-radial-offset",
-            "text-variable-anchor", "text-anchor", "text-max-angle", "text-writing-mode",
-            "text-rotate", "text-padding", "text-keep-upright", "text-transform",
-            "text-offset", "text-allow-overlap", "text-ignore-placement", "text-optional",
+            "symbol-placement",
+            "symbol-spacing",
+            "symbol-avoid-edges",
+            "symbol-sort-key",
+            "symbol-z-order",
+            "icon-allow-overlap",
+            "icon-ignore-placement",
+            "icon-optional",
+            "icon-rotation-alignment",
+            "icon-size",
+            "icon-text-fit",
+            "icon-text-fit-padding",
+            "icon-image",
+            "icon-rotate",
+            "icon-padding",
+            "icon-keep-upright",
+            "icon-offset",
+            "icon-anchor",
+            "icon-pitch-alignment",
+            "text-pitch-alignment",
+            "text-rotation-alignment",
+            "text-field",
+            "text-font",
+            "text-size",
+            "text-max-width",
+            "text-line-height",
+            "text-letter-spacing",
+            "text-justify",
+            "text-radial-offset",
+            "text-variable-anchor",
+            "text-anchor",
+            "text-max-angle",
+            "text-writing-mode",
+            "text-rotate",
+            "text-padding",
+            "text-keep-upright",
+            "text-transform",
+            "text-offset",
+            "text-allow-overlap",
+            "text-ignore-placement",
+            "text-optional",
         ],
     }
 }
@@ -104,20 +192,29 @@ pub fn validate_layers(style: &Style) -> Vec<Diagnostic> {
         // Validate minzoom/maxzoom ranges
         if let Some(z) = layer.minzoom {
             if !(0.0..=24.0).contains(&z) {
-                diags.push(Diagnostic::error("E014", format!("{}.minzoom", path),
-                    format!("minzoom {} is out of range [0, 24]", z)));
+                diags.push(Diagnostic::error(
+                    "E014",
+                    format!("{}.minzoom", path),
+                    format!("minzoom {} is out of range [0, 24]", z),
+                ));
             }
         }
         if let Some(z) = layer.maxzoom {
             if !(0.0..=24.0).contains(&z) {
-                diags.push(Diagnostic::error("E014", format!("{}.maxzoom", path),
-                    format!("maxzoom {} is out of range [0, 24]", z)));
+                diags.push(Diagnostic::error(
+                    "E014",
+                    format!("{}.maxzoom", path),
+                    format!("maxzoom {} is out of range [0, 24]", z),
+                ));
             }
         }
         if let (Some(min), Some(max)) = (layer.minzoom, layer.maxzoom) {
             if min > max {
-                diags.push(Diagnostic::error("E014", format!("{}.minzoom", path),
-                    format!("minzoom ({}) must be <= maxzoom ({})", min, max)));
+                diags.push(Diagnostic::error(
+                    "E014",
+                    format!("{}.minzoom", path),
+                    format!("minzoom ({}) must be <= maxzoom ({})", min, max),
+                ));
             }
         }
 
@@ -131,9 +228,14 @@ pub fn validate_layers(style: &Style) -> Vec<Diagnostic> {
                 Diagnostic::error(
                     "E004",
                     format!("{}.source", path),
-                    format!("layer \"{}\" of type \"{}\" requires a \"source\"", layer.id, layer.layer_type),
+                    format!(
+                        "layer \"{}\" of type \"{}\" requires a \"source\"",
+                        layer.id, layer.layer_type
+                    ),
                 )
-                .with_hint("add a \"source\" field referencing a key in the top-level sources object"),
+                .with_hint(
+                    "add a \"source\" field referencing a key in the top-level sources object",
+                ),
             );
         }
 
@@ -145,9 +247,14 @@ pub fn validate_layers(style: &Style) -> Vec<Diagnostic> {
                         Diagnostic::error(
                             "E005",
                             format!("{}.source-layer", path),
-                            format!("layer \"{}\" uses a vector source but has no \"source-layer\"", layer.id),
+                            format!(
+                                "layer \"{}\" uses a vector source but has no \"source-layer\"",
+                                layer.id
+                            ),
                         )
-                        .with_hint("add \"source-layer\" matching the layer name in the vector tile"),
+                        .with_hint(
+                            "add \"source-layer\" matching the layer name in the vector tile",
+                        ),
                     );
                 }
             }
@@ -239,7 +346,8 @@ mod tests {
 
     #[test]
     fn test_background_layer_no_source_required() {
-        let style = parse(r#"{"version":8,"sources":{},"layers":[{"id":"bg","type":"background"}]}"#);
+        let style =
+            parse(r#"{"version":8,"sources":{},"layers":[{"id":"bg","type":"background"}]}"#);
         assert!(validate_layers(&style).is_empty());
     }
 
@@ -252,103 +360,127 @@ mod tests {
 
     #[test]
     fn test_vector_layer_missing_source_layer() {
-        let style = parse(r#"{
+        let style = parse(
+            r#"{
             "version":8,
             "sources":{"s":{"type":"vector","url":"mapbox://x"}},
             "layers":[{"id":"l","type":"fill","source":"s"}]
-        }"#);
+        }"#,
+        );
         let diags = validate_layers(&style);
         assert!(diags.iter().any(|d| d.code == "E005"));
     }
 
     #[test]
     fn test_vector_layer_with_source_layer_valid() {
-        let style = parse(r#"{
+        let style = parse(
+            r#"{
             "version":8,
             "sources":{"s":{"type":"vector","url":"mapbox://x"}},
             "layers":[{"id":"l","type":"fill","source":"s","source-layer":"water"}]
-        }"#);
+        }"#,
+        );
         assert!(validate_layers(&style).is_empty());
     }
 
     #[test]
     fn test_invalid_paint_prop() {
-        let style = parse(r#"{
+        let style = parse(
+            r#"{
             "version":8,
             "sources":{"s":{"type":"vector","url":"mapbox://x"}},
             "layers":[{
                 "id":"l","type":"fill","source":"s","source-layer":"water",
                 "paint":{"line-width":2}
             }]
-        }"#);
+        }"#,
+        );
         let diags = validate_layers(&style);
-        assert!(diags.iter().any(|d| d.code == "E006" && d.path.contains("line-width")));
+        assert!(diags
+            .iter()
+            .any(|d| d.code == "E006" && d.path.contains("line-width")));
     }
 
     #[test]
     fn test_valid_fill_paint() {
-        let style = parse(r##"{
+        let style = parse(
+            r##"{
             "version":8,
             "sources":{"s":{"type":"vector","url":"mapbox://x"}},
             "layers":[{
                 "id":"l","type":"fill","source":"s","source-layer":"water",
                 "paint":{"fill-color":"#0000ff","fill-opacity":0.8}
             }]
-        }"##);
+        }"##,
+        );
         assert!(validate_layers(&style).is_empty());
     }
 
     #[test]
     fn test_layer_invalid_minzoom() {
-        let style = parse(r#"{"version":8,"sources":{},"layers":[{"id":"bg","type":"background","minzoom":25}]}"#);
+        let style = parse(
+            r#"{"version":8,"sources":{},"layers":[{"id":"bg","type":"background","minzoom":25}]}"#,
+        );
         let diags = validate_layers(&style);
         assert!(diags.iter().any(|d| d.code == "E014"));
     }
 
     #[test]
     fn test_layer_minzoom_gt_maxzoom() {
-        let style = parse(r#"{"version":8,"sources":{},"layers":[{"id":"bg","type":"background","minzoom":10,"maxzoom":5}]}"#);
+        let style = parse(
+            r#"{"version":8,"sources":{},"layers":[{"id":"bg","type":"background","minzoom":10,"maxzoom":5}]}"#,
+        );
         let diags = validate_layers(&style);
         assert!(diags.iter().any(|d| d.code == "E014"));
     }
 
     #[test]
     fn test_layer_valid_zoom_range() {
-        let style = parse(r#"{"version":8,"sources":{},"layers":[{"id":"bg","type":"background","minzoom":0,"maxzoom":24}]}"#);
+        let style = parse(
+            r#"{"version":8,"sources":{},"layers":[{"id":"bg","type":"background","minzoom":0,"maxzoom":24}]}"#,
+        );
         assert!(validate_layers(&style).is_empty());
     }
 
     #[test]
     fn test_valid_expression_filter() {
-        let style = parse(r#"{
+        let style = parse(
+            r#"{
             "version":8,
             "sources":{"s":{"type":"vector","url":"mapbox://x"}},
             "layers":[{"id":"l","type":"fill","source":"s","source-layer":"water",
                 "filter":["==",["get","class"],"lake"]}]
-        }"#);
-        assert!(validate_layers(&style).iter().all(|d| d.code != "E022" && d.code != "E021"));
+        }"#,
+        );
+        assert!(validate_layers(&style)
+            .iter()
+            .all(|d| d.code != "E022" && d.code != "E021"));
     }
 
     #[test]
     fn test_filter_unknown_operator() {
-        let style = parse(r#"{
+        let style = parse(
+            r#"{
             "version":8,
             "sources":{"s":{"type":"vector","url":"mapbox://x"}},
             "layers":[{"id":"l","type":"fill","source":"s","source-layer":"water",
                 "filter":["not-an-op","value"]}]
-        }"#);
+        }"#,
+        );
         let diags = validate_layers(&style);
         assert!(diags.iter().any(|d| d.code == "E022"));
     }
 
     #[test]
     fn test_filter_empty_array() {
-        let style = parse(r#"{
+        let style = parse(
+            r#"{
             "version":8,
             "sources":{"s":{"type":"vector","url":"mapbox://x"}},
             "layers":[{"id":"l","type":"fill","source":"s","source-layer":"water",
                 "filter":[]}]
-        }"#);
+        }"#,
+        );
         let diags = validate_layers(&style);
         assert!(diags.iter().any(|d| d.code == "E020"));
     }
@@ -356,109 +488,135 @@ mod tests {
     #[test]
     fn test_legacy_filter_not_expression_validated() {
         // Legacy filters should not generate E022 — W011 handles them separately
-        let style = parse(r#"{
+        let style = parse(
+            r#"{
             "version":8,
             "sources":{"s":{"type":"vector","url":"mapbox://x"}},
             "layers":[{"id":"l","type":"fill","source":"s","source-layer":"water",
                 "filter":["==","class","road"]}]
-        }"#);
+        }"#,
+        );
         let diags = validate_layers(&style);
         assert!(!diags.iter().any(|d| d.code == "E022"));
     }
 
     #[test]
     fn test_invalid_layout_prop() {
-        let style = parse(r#"{
+        let style = parse(
+            r#"{
             "version":8,
             "sources":{"s":{"type":"vector","url":"mapbox://x"}},
             "layers":[{
                 "id":"l","type":"fill","source":"s","source-layer":"water",
                 "layout":{"text-field":"hello"}
             }]
-        }"#);
+        }"#,
+        );
         let diags = validate_layers(&style);
-        assert!(diags.iter().any(|d| d.code == "E007" && d.path.contains("text-field")));
+        assert!(diags
+            .iter()
+            .any(|d| d.code == "E007" && d.path.contains("text-field")));
     }
 
     #[test]
     fn test_paint_value_opacity_out_of_range() {
-        let style = parse(r#"{
+        let style = parse(
+            r#"{
             "version":8,
             "sources":{"s":{"type":"vector","url":"mapbox://x"}},
             "layers":[{
                 "id":"l","type":"fill","source":"s","source-layer":"water",
                 "paint":{"fill-opacity":2.0}
             }]
-        }"#);
+        }"#,
+        );
         let diags = validate_layers(&style);
-        assert!(diags.iter().any(|d| d.code == "E018" && d.path.contains("fill-opacity")));
+        assert!(diags
+            .iter()
+            .any(|d| d.code == "E018" && d.path.contains("fill-opacity")));
     }
 
     #[test]
     fn test_paint_value_enum_invalid() {
-        let style = parse(r#"{
+        let style = parse(
+            r#"{
             "version":8,
             "sources":{"s":{"type":"vector","url":"mapbox://x"}},
             "layers":[{
                 "id":"l","type":"line","source":"s","source-layer":"roads",
                 "layout":{"line-cap":"flat"}
             }]
-        }"#);
+        }"#,
+        );
         let diags = validate_layers(&style);
-        assert!(diags.iter().any(|d| d.code == "E018" && d.path.contains("line-cap")));
+        assert!(diags
+            .iter()
+            .any(|d| d.code == "E018" && d.path.contains("line-cap")));
     }
 
     #[test]
     fn test_paint_value_color_invalid() {
-        let style = parse(r#"{
+        let style = parse(
+            r#"{
             "version":8,
             "sources":{"s":{"type":"vector","url":"mapbox://x"}},
             "layers":[{
                 "id":"l","type":"fill","source":"s","source-layer":"water",
                 "paint":{"fill-color":"notacolor"}
             }]
-        }"#);
+        }"#,
+        );
         let diags = validate_layers(&style);
-        assert!(diags.iter().any(|d| d.code == "E018" && d.path.contains("fill-color")));
+        assert!(diags
+            .iter()
+            .any(|d| d.code == "E018" && d.path.contains("fill-color")));
     }
 
     #[test]
     fn test_paint_value_expression_not_e018() {
-        let style = parse(r#"{
+        let style = parse(
+            r#"{
             "version":8,
             "sources":{"s":{"type":"vector","url":"mapbox://x"}},
             "layers":[{
                 "id":"l","type":"fill","source":"s","source-layer":"water",
                 "paint":{"fill-opacity":["get","opacity"]}
             }]
-        }"#);
+        }"#,
+        );
         let diags = validate_layers(&style);
         assert!(!diags.iter().any(|d| d.code == "E018"));
     }
 
     #[test]
     fn test_paint_value_color_named_valid() {
-        let style = parse(r#"{
+        let style = parse(
+            r#"{
             "version":8,
             "sources":{"s":{"type":"vector","url":"mapbox://x"}},
             "layers":[{
                 "id":"l","type":"fill","source":"s","source-layer":"water",
                 "paint":{"fill-color":"red"}
             }]
-        }"#);
+        }"#,
+        );
         assert!(validate_layers(&style).iter().all(|d| d.code != "E018"));
     }
 
     #[test]
     fn test_layout_value_visibility_invalid() {
-        let style = parse(r#"{
+        let style = parse(
+            r#"{
             "version":8,
             "sources":{},"layers":[{
                 "id":"bg","type":"background",
                 "layout":{"visibility":"hidden"}
             }]
-        }"#);
+        }"#,
+        );
         let diags = validate_layers(&style);
-        assert!(diags.iter().any(|d| d.code == "E018" && d.path.contains("visibility")));
+        assert!(diags
+            .iter()
+            .any(|d| d.code == "E018" && d.path.contains("visibility")));
     }
 }

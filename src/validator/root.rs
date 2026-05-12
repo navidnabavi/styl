@@ -7,8 +7,12 @@ pub fn validate_root(style: &Style) -> Vec<Diagnostic> {
     // version must be 8
     if style.version != 8 {
         diags.push(
-            Diagnostic::error("E001", "version", format!("version must be 8, got {}", style.version))
-                .with_hint("set \"version\": 8 at the root of your style"),
+            Diagnostic::error(
+                "E001",
+                "version",
+                format!("version must be 8, got {}", style.version),
+            )
+            .with_hint("set \"version\": 8 at the root of your style"),
         );
     }
 
@@ -60,14 +64,22 @@ pub fn validate_root(style: &Style) -> Vec<Diagnostic> {
     if let Some(glyphs) = &style.glyphs {
         if !glyphs.contains("{fontstack}") {
             diags.push(
-                Diagnostic::error("E003", "glyphs", "glyphs URL must contain {fontstack} placeholder")
-                    .with_hint("example: \"https://example.com/fonts/{fontstack}/{range}.pbf\""),
+                Diagnostic::error(
+                    "E003",
+                    "glyphs",
+                    "glyphs URL must contain {fontstack} placeholder",
+                )
+                .with_hint("example: \"https://example.com/fonts/{fontstack}/{range}.pbf\""),
             );
         }
         if !glyphs.contains("{range}") {
             diags.push(
-                Diagnostic::error("E003", "glyphs", "glyphs URL must contain {range} placeholder")
-                    .with_hint("example: \"https://example.com/fonts/{fontstack}/{range}.pbf\""),
+                Diagnostic::error(
+                    "E003",
+                    "glyphs",
+                    "glyphs URL must contain {range} placeholder",
+                )
+                .with_hint("example: \"https://example.com/fonts/{fontstack}/{range}.pbf\""),
             );
         }
     }
@@ -101,14 +113,18 @@ mod tests {
     fn test_invalid_center_lng() {
         let style = parse(r#"{"version":8,"center":[200,0],"sources":{},"layers":[]}"#);
         let diags = validate_root(&style);
-        assert!(diags.iter().any(|d| d.code == "E002" && d.path.contains("center[0]")));
+        assert!(diags
+            .iter()
+            .any(|d| d.code == "E002" && d.path.contains("center[0]")));
     }
 
     #[test]
     fn test_invalid_center_lat() {
         let style = parse(r#"{"version":8,"center":[0,100],"sources":{},"layers":[]}"#);
         let diags = validate_root(&style);
-        assert!(diags.iter().any(|d| d.code == "E002" && d.path.contains("center[1]")));
+        assert!(diags
+            .iter()
+            .any(|d| d.code == "E002" && d.path.contains("center[1]")));
     }
 
     #[test]
@@ -135,14 +151,17 @@ mod tests {
 
     #[test]
     fn test_glyphs_missing_placeholders() {
-        let style = parse(r#"{"version":8,"glyphs":"https://example.com/fonts","sources":{},"layers":[]}"#);
+        let style =
+            parse(r#"{"version":8,"glyphs":"https://example.com/fonts","sources":{},"layers":[]}"#);
         let diags = validate_root(&style);
         assert!(diags.iter().any(|d| d.code == "E003" && d.path == "glyphs"));
     }
 
     #[test]
     fn test_glyphs_valid() {
-        let style = parse(r#"{"version":8,"glyphs":"https://example.com/{fontstack}/{range}.pbf","sources":{},"layers":[]}"#);
+        let style = parse(
+            r#"{"version":8,"glyphs":"https://example.com/{fontstack}/{range}.pbf","sources":{},"layers":[]}"#,
+        );
         let diags = validate_root(&style);
         assert!(diags.iter().filter(|d| d.path == "glyphs").count() == 0);
     }
