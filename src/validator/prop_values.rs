@@ -392,4 +392,24 @@ mod tests {
         let diags = validate_prop_value("visibility", &json!("hidden"), "layers[0].layout.visibility");
         assert!(diags.iter().any(|d| d.code == "E018" && d.message.contains("\"visible\" or \"none\"")));
     }
+
+    #[test]
+    fn test_array_valid() {
+        let diags = validate_prop_value("text-font", &json!(["Open Sans Regular", "Arial Unicode MS"]), "layers[0].layout.text-font");
+        assert!(diags.is_empty());
+    }
+
+    #[test]
+    fn test_array_wrong_type() {
+        let diags = validate_prop_value("text-font", &json!("Open Sans Regular"), "layers[0].layout.text-font");
+        assert!(diags.iter().any(|d| d.code == "E018" && d.message.contains("text-font")));
+    }
+
+    #[test]
+    fn test_array_string_first_element_not_expression() {
+        // Array-typed props with string-first arrays must NOT be routed to validate_expression
+        let diags = validate_prop_value("text-variable-anchor", &json!(["center", "left"]), "layers[0].layout.text-variable-anchor");
+        assert!(!diags.iter().any(|d| d.code == "E022"));
+        assert!(diags.is_empty());
+    }
 }
