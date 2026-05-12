@@ -80,9 +80,11 @@ fn run(cli: &Cli) -> i32 {
                 }
             } else {
                 if let Some(path) = get_file_path(cli) {
-                    std::fs::write(path, &formatted).map_err(|e| {
-                        eprintln!("error: {}", e);
-                    }).ok();
+                    std::fs::write(path, &formatted)
+                        .map_err(|e| {
+                            eprintln!("error: {}", e);
+                        })
+                        .ok();
                 } else {
                     print!("{}", formatted);
                 }
@@ -100,7 +102,12 @@ fn run(cli: &Cli) -> i32 {
         print!("{}", output);
     }
 
-    if diagnostics.iter().any(|d| matches!(d.severity, diagnostic::Severity::Error | diagnostic::Severity::Warning)) {
+    if diagnostics.iter().any(|d| {
+        matches!(
+            d.severity,
+            diagnostic::Severity::Error | diagnostic::Severity::Warning
+        )
+    }) {
         1
     } else {
         0
@@ -111,11 +118,14 @@ fn read_input(cli: &Cli) -> Result<(String, String), String> {
     if cli.stdin {
         use std::io::Read;
         let mut content = String::new();
-        std::io::stdin().read_to_string(&mut content).map_err(|e| e.to_string())?;
+        std::io::stdin()
+            .read_to_string(&mut content)
+            .map_err(|e| e.to_string())?;
         return Ok((content, "<stdin>".to_string()));
     }
     let path = get_file_path(cli).ok_or("no input file specified")?;
-    let content = std::fs::read_to_string(&path).map_err(|e| format!("{}: {}", path.display(), e))?;
+    let content =
+        std::fs::read_to_string(&path).map_err(|e| format!("{}: {}", path.display(), e))?;
     Ok((content, path.display().to_string()))
 }
 

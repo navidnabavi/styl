@@ -1,6 +1,6 @@
+use serde::Deserialize;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
-use serde::Deserialize;
 
 /// Rule severity override
 #[derive(Debug, Clone, Deserialize, PartialEq)]
@@ -33,7 +33,9 @@ pub struct FormatConfig {
     pub indent: usize,
 }
 
-fn default_indent() -> usize { 2 }
+fn default_indent() -> usize {
+    2
+}
 
 impl Default for FormatConfig {
     fn default() -> Self {
@@ -60,8 +62,7 @@ pub fn discover_config(start: &Path) -> Option<PathBuf> {
 pub fn load_config(path: &Path) -> Result<Config, String> {
     let content = std::fs::read_to_string(path)
         .map_err(|e| format!("cannot read config {}: {}", path.display(), e))?;
-    toml::from_str(&content)
-        .map_err(|e| format!("invalid config {}: {}", path.display(), e))
+    toml::from_str(&content).map_err(|e| format!("invalid config {}: {}", path.display(), e))
 }
 
 #[cfg(test)]

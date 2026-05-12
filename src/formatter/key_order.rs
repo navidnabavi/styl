@@ -3,26 +3,62 @@ use serde_json::Value;
 
 /// Canonical root key order
 pub const ROOT_KEY_ORDER: &[&str] = &[
-    "version", "name", "metadata", "center", "zoom", "bearing", "pitch",
-    "light", "terrain", "fog", "sky", "projection", "roll", "font-faces",
-    "sprite", "glyphs", "transition", "sources", "layers",
+    "version",
+    "name",
+    "metadata",
+    "center",
+    "zoom",
+    "bearing",
+    "pitch",
+    "light",
+    "terrain",
+    "fog",
+    "sky",
+    "projection",
+    "roll",
+    "font-faces",
+    "sprite",
+    "glyphs",
+    "transition",
+    "sources",
+    "layers",
 ];
 
 /// Canonical layer key order
 pub const LAYER_KEY_ORDER: &[&str] = &[
-    "id", "type", "metadata", "ref", "source", "source-layer",
-    "minzoom", "maxzoom", "filter", "layout", "paint",
+    "id",
+    "type",
+    "metadata",
+    "ref",
+    "source",
+    "source-layer",
+    "minzoom",
+    "maxzoom",
+    "filter",
+    "layout",
+    "paint",
 ];
 
 /// Canonical source key order
 pub const SOURCE_KEY_ORDER: &[&str] = &[
-    "type", "url", "tiles", "bounds", "scheme", "minzoom", "maxzoom", "tileSize",
-    "attribution", "promoteId",
+    "type",
+    "url",
+    "tiles",
+    "bounds",
+    "scheme",
+    "minzoom",
+    "maxzoom",
+    "tileSize",
+    "attribution",
+    "promoteId",
 ];
 
 /// Reorder keys in a JSON object according to a canonical order.
 /// Unknown keys are appended at the end in their original order.
-pub fn reorder_object(obj: &serde_json::Map<String, Value>, order: &[&str]) -> IndexMap<String, Value> {
+pub fn reorder_object(
+    obj: &serde_json::Map<String, Value>,
+    order: &[&str],
+) -> IndexMap<String, Value> {
     let mut result = IndexMap::new();
 
     // First: keys in canonical order
@@ -33,7 +69,8 @@ pub fn reorder_object(obj: &serde_json::Map<String, Value>, order: &[&str]) -> I
     }
 
     // Then: any remaining keys not in the canonical order (alphabetically)
-    let mut extra: Vec<&String> = obj.keys()
+    let mut extra: Vec<&String> = obj
+        .keys()
         .filter(|k| !order.contains(&k.as_str()))
         .collect();
     extra.sort();

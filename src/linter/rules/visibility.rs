@@ -6,7 +6,9 @@ use crate::style::Style;
 pub struct PermanentlyInvisible;
 
 impl LintRule for PermanentlyInvisible {
-    fn code(&self) -> &'static str { "W002" }
+    fn code(&self) -> &'static str {
+        "W002"
+    }
 
     fn check(&self, style: &Style) -> Vec<Diagnostic> {
         let mut diags = Vec::new();
@@ -33,17 +35,23 @@ impl LintRule for PermanentlyInvisible {
 #[cfg(test)]
 mod tests {
     use super::*;
-    fn parse(json: &str) -> Style { serde_json::from_str(json).unwrap() }
+    fn parse(json: &str) -> Style {
+        serde_json::from_str(json).unwrap()
+    }
 
     #[test]
     fn test_visible_layer() {
-        let style = parse(r#"{"version":8,"sources":{},"layers":[{"id":"a","type":"background","layout":{"visibility":"visible"}}]}"#);
+        let style = parse(
+            r#"{"version":8,"sources":{},"layers":[{"id":"a","type":"background","layout":{"visibility":"visible"}}]}"#,
+        );
         assert!(PermanentlyInvisible.check(&style).is_empty());
     }
 
     #[test]
     fn test_invisible_layer() {
-        let style = parse(r#"{"version":8,"sources":{},"layers":[{"id":"a","type":"background","layout":{"visibility":"none"}}]}"#);
+        let style = parse(
+            r#"{"version":8,"sources":{},"layers":[{"id":"a","type":"background","layout":{"visibility":"none"}}]}"#,
+        );
         let diags = PermanentlyInvisible.check(&style);
         assert_eq!(diags.len(), 1);
         assert_eq!(diags[0].code, "W002");

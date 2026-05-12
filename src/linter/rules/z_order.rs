@@ -6,7 +6,9 @@ use crate::style::{layer::LayerType, Style};
 pub struct FillExtrusionBelowBackground;
 
 impl LintRule for FillExtrusionBelowBackground {
-    fn code(&self) -> &'static str { "W005" }
+    fn code(&self) -> &'static str {
+        "W005"
+    }
 
     fn check(&self, style: &Style) -> Vec<Diagnostic> {
         let mut diags = Vec::new();
@@ -41,25 +43,31 @@ impl LintRule for FillExtrusionBelowBackground {
 #[cfg(test)]
 mod tests {
     use super::*;
-    fn parse(json: &str) -> Style { serde_json::from_str(json).unwrap() }
+    fn parse(json: &str) -> Style {
+        serde_json::from_str(json).unwrap()
+    }
 
     #[test]
     fn test_extrusion_above_background_ok() {
         // background first, extrusion after → extrusion renders on top → fine
-        let style = parse(r#"{"version":8,"sources":{"s":{"type":"geojson","data":null}},"layers":[
+        let style = parse(
+            r#"{"version":8,"sources":{"s":{"type":"geojson","data":null}},"layers":[
             {"id":"bg","type":"background"},
             {"id":"ex","type":"fill-extrusion","source":"s"}
-        ]}"#);
+        ]}"#,
+        );
         assert!(FillExtrusionBelowBackground.check(&style).is_empty());
     }
 
     #[test]
     fn test_extrusion_before_background_warns() {
         // extrusion first, background after → background renders on top, occludes extrusion
-        let style = parse(r#"{"version":8,"sources":{"s":{"type":"geojson","data":null}},"layers":[
+        let style = parse(
+            r#"{"version":8,"sources":{"s":{"type":"geojson","data":null}},"layers":[
             {"id":"ex","type":"fill-extrusion","source":"s"},
             {"id":"bg","type":"background"}
-        ]}"#);
+        ]}"#,
+        );
         let diags = FillExtrusionBelowBackground.check(&style);
         assert_eq!(diags.len(), 1);
         assert_eq!(diags[0].code, "W005");
@@ -74,11 +82,13 @@ mod tests {
 
     #[test]
     fn test_two_extrusions_before_background_warns_both() {
-        let style = parse(r#"{"version":8,"sources":{"s":{"type":"geojson","data":null}},"layers":[
+        let style = parse(
+            r#"{"version":8,"sources":{"s":{"type":"geojson","data":null}},"layers":[
             {"id":"ex1","type":"fill-extrusion","source":"s"},
             {"id":"ex2","type":"fill-extrusion","source":"s"},
             {"id":"bg","type":"background"}
-        ]}"#);
+        ]}"#,
+        );
         let diags = FillExtrusionBelowBackground.check(&style);
         assert_eq!(diags.len(), 2);
     }
