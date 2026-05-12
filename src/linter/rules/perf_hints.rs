@@ -305,6 +305,114 @@ impl LintRule for BackgroundPatternOverridesColor {
     }
 }
 
+/// W016: Fill layer sets both fill-pattern and fill-color (pattern takes precedence)
+pub struct FillPatternOverridesColor;
+
+impl LintRule for FillPatternOverridesColor {
+    fn code(&self) -> &'static str {
+        "W016"
+    }
+
+    fn check(&self, style: &Style) -> Vec<Diagnostic> {
+        let mut diags = Vec::new();
+        for (i, layer) in style.layers.iter().enumerate() {
+            if layer.layer_type == LayerType::Fill {
+                if let Some(paint) = &layer.paint {
+                    let has_pattern = paint.get("fill-pattern").is_some();
+                    let has_color = paint.get("fill-color").is_some();
+                    if has_pattern && has_color {
+                        diags.push(
+                            Diagnostic::warning(
+                                "W016",
+                                format!("layers[{}].paint", i),
+                                format!(
+                                    "fill layer \"{}\" sets both fill-pattern and fill-color; pattern takes precedence",
+                                    layer.id
+                                ),
+                            )
+                            .with_hint("remove fill-color — it has no effect when fill-pattern is set"),
+                        );
+                    }
+                }
+            }
+        }
+        diags
+    }
+}
+
+/// W017: Line layer sets both line-pattern and line-color (pattern takes precedence)
+pub struct LinePatternOverridesColor;
+
+impl LintRule for LinePatternOverridesColor {
+    fn code(&self) -> &'static str {
+        "W017"
+    }
+
+    fn check(&self, style: &Style) -> Vec<Diagnostic> {
+        let mut diags = Vec::new();
+        for (i, layer) in style.layers.iter().enumerate() {
+            if layer.layer_type == LayerType::Line {
+                if let Some(paint) = &layer.paint {
+                    let has_pattern = paint.get("line-pattern").is_some();
+                    let has_color = paint.get("line-color").is_some();
+                    if has_pattern && has_color {
+                        diags.push(
+                            Diagnostic::warning(
+                                "W017",
+                                format!("layers[{}].paint", i),
+                                format!(
+                                    "line layer \"{}\" sets both line-pattern and line-color; pattern takes precedence",
+                                    layer.id
+                                ),
+                            )
+                            .with_hint("remove line-color — it has no effect when line-pattern is set"),
+                        );
+                    }
+                }
+            }
+        }
+        diags
+    }
+}
+
+/// W018: Heatmap layer missing heatmap-color expression (renders monochrome)
+pub struct HeatmapMissingColor;
+
+impl LintRule for HeatmapMissingColor {
+    fn code(&self) -> &'static str {
+        "W018"
+    }
+
+    fn check(&self, style: &Style) -> Vec<Diagnostic> {
+        let mut diags = Vec::new();
+        for (i, layer) in style.layers.iter().enumerate() {
+            if layer.layer_type == LayerType::Heatmap {
+                let has_color = layer
+                    .paint
+                    .as_ref()
+                    .and_then(|p| p.get("heatmap-color"))
+                    .is_some();
+                if !has_color {
+                    diags.push(
+                        Diagnostic::info(
+                            "W018",
+                            format!("layers[{}].paint", i),
+                            format!(
+                                "heatmap layer \"{}\" does not set heatmap-color and renders monochrome",
+                                layer.id
+                            ),
+                        )
+                        .with_hint(
+                            "set heatmap-color to an interpolate expression for a meaningful color ramp",
+                        ),
+                    );
+                }
+            }
+        }
+        diags
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -492,5 +600,54 @@ mod tests {
             .check(&style)
             .iter()
             .any(|d| d.code == "W009"));
+    }
+
+    #[test]
+    fn test_fill_pattern_overrides_color() {
+        let style = parse("{\"version\":8,\"sources\":{\"s\":{\"type\":\"vector\",\"url\":\"mapbox://x\"}},\"layers\":[{\"id\":\"l\",\"type\":\"fill\",\"source\":\"s\",\"source-layer\":\"x\",\"paint\":{\"fill-color\":\"#ff0\",\"fill-pattern\":\"dots\"}}]}");
+        assert!(FillPatternOverridesColor
+            .check(&style)
+            .iter()
+            .any(|d| d.code == "W016"));
+    }
+
+    #[test]
+    fn test_fill_pattern_only_ok() {
+        let style = parse("{\"version\":8,\"sources\":{\"s\":{\"type\":\"vector\",\"url\":\"mapbox://x\"}},\"layers\":[{\"id\":\"l\",\"type\":\"fill\",\"source\":\"s\",\"source-layer\":\"x\",\"paint\":{\"fill-pattern\":\"dots\"}}]}");
+        assert!(FillPatternOverridesColor.check(&style).is_empty());
+    }
+
+    #[test]
+    fn test_line_pattern_overrides_color() {
+        let style = parse("{\"version\":8,\"sources\":{\"s\":{\"type\":\"vector\",\"url\":\"mapbox://x\"}},\"layers\":[{\"id\":\"l\",\"type\":\"line\",\"source\":\"s\",\"source-layer\":\"x\",\"paint\":{\"line-color\":\"#ff0\",\"line-pattern\":\"dash\"}}]}");
+        assert!(LinePatternOverridesColor
+            .check(&style)
+            .iter()
+            .any(|d| d.code == "W017"));
+    }
+
+    #[test]
+    fn test_line_pattern_only_ok() {
+        let style = parse("{\"version\":8,\"sources\":{\"s\":{\"type\":\"vector\",\"url\":\"mapbox://x\"}},\"layers\":[{\"id\":\"l\",\"type\":\"line\",\"source\":\"s\",\"source-layer\":\"x\",\"paint\":{\"line-pattern\":\"dash\"}}]}");
+        assert!(LinePatternOverridesColor.check(&style).is_empty());
+    }
+
+    #[test]
+    fn test_heatmap_missing_color() {
+        let style = parse(
+            r#"{"version":8,"sources":{"s":{"type":"vector","url":"mapbox://x"}},"layers":[{"id":"h","type":"heatmap","source":"s","source-layer":"x"}]}"#,
+        );
+        assert!(HeatmapMissingColor
+            .check(&style)
+            .iter()
+            .any(|d| d.code == "W018"));
+    }
+
+    #[test]
+    fn test_heatmap_with_color_ok() {
+        let style = parse(
+            r#"{"version":8,"sources":{"s":{"type":"vector","url":"mapbox://x"}},"layers":[{"id":"h","type":"heatmap","source":"s","source-layer":"x","paint":{"heatmap-color":["interpolate",["linear"],["heatmap-density"],0,"transparent",1,"red"]}}]}"#,
+        );
+        assert!(HeatmapMissingColor.check(&style).is_empty());
     }
 }
