@@ -24,6 +24,9 @@ pub fn run_all(style: &Style) -> Vec<Diagnostic> {
         Box::new(rules::perf_hints::ZeroDasharray),
         Box::new(rules::perf_hints::LegacyFilter),
         Box::new(rules::perf_hints::RasterResampling),
+        Box::new(rules::perf_hints::SymbolNoContent),
+        Box::new(rules::perf_hints::SymbolMissingFont),
+        Box::new(rules::perf_hints::BackgroundPatternOverridesColor),
     ];
 
     rules.iter().flat_map(|r| r.check(style)).collect()

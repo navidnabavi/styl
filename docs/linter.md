@@ -21,7 +21,7 @@ Two or more layers share the same `id`. IDs must be unique.
 
 ## W002 — Hidden layer
 
-A layer has `"visibility": "none"` in its `layout`. This may be intentional but is worth reviewing.
+A layer has `"visibility": "none"` in its `layout`. May be intentional but worth reviewing.
 
 ```json
 "layout": { "visibility": "none" }
@@ -61,27 +61,43 @@ An expression exceeds 10 levels of nesting. Deeply nested expressions are hard t
 
 ---
 
-## W007 — Large GeoJSON
+## W007 — Empty text-field
 
-A GeoJSON source's `data` field contains inline data exceeding the recommended size. Consider hosting the data externally and referencing it by URL.
+A symbol layer has `text-field` set to an empty string `""`. The layer renders no text.
 
----
+```json
+"layout": { "text-field": "" }
+```
 
-## W008 — High raster tile size
-
-A raster source's `tileSize` is unusually large. Standard tile sizes are `256` or `512`.
-
----
-
-## W009 — Duplicate source
-
-Two or more sources have the same `url` or `tiles` values, meaning they fetch the same data. Consider deduplicating.
+Fix: remove `text-field` or provide a value such as `["get", "name"]`.
 
 ---
 
-## W010 — Non-standard bearing
+## W008 — Placeholder icon-image
 
-`bearing` is set to a non-zero value. This is valid but may surprise users if unintentional.
+A symbol layer's `icon-image` looks like a placeholder name (e.g. `TODO`, `my-icon`, `placeholder`).
+
+```json
+"layout": { "icon-image": "my-icon-24" }
+```
+
+Fix: replace with the actual sprite name from your sprite sheet.
+
+---
+
+## W009 — Layer count
+
+The style has more than 200 layers. Consider merging layers for better performance.
+
+---
+
+## W010 — Zero dasharray segment
+
+`line-dasharray` contains a zero-length segment. All segments must be `> 0`.
+
+```json
+"paint": { "line-dasharray": [2, 0, 2] }
+```
 
 ---
 
@@ -103,9 +119,52 @@ Legacy filters are still supported by MapLibre/Mapbox but are deprecated.
 
 ---
 
-## W012 — Excessive stops
+## W012 — Raster resampling not set
 
-A paint or layout property uses more than the recommended number of zoom stops. Consider using expressions instead.
+A raster layer does not set `raster-resampling`. The default may cause blur when overzooming.
+
+```json
+"paint": { "raster-resampling": "nearest" }
+```
+
+---
+
+## W013 — Symbol layer renders nothing
+
+A symbol layer has neither `text-field` nor `icon-image`. The layer renders nothing.
+
+```json
+{ "id": "labels", "type": "symbol", "source": "s", "source-layer": "x" }
+```
+
+Fix: add `text-field` or `icon-image` to the layer's `layout`.
+
+---
+
+## W014 — Symbol missing text-font
+
+A symbol layer uses `text-field` without setting `text-font`. The renderer falls back to a default font which may differ across platforms.
+
+```json
+"layout": { "text-field": ["get", "name"] }
+```
+
+Fix: add `text-font` with an explicit font stack.
+
+---
+
+## W015 — Background pattern overrides color
+
+A background layer sets both `background-pattern` and `background-color`. The pattern takes precedence; the color has no effect.
+
+```json
+"paint": {
+  "background-color": "#ffffff",
+  "background-pattern": "dots"
+}
+```
+
+Fix: remove `background-color` when `background-pattern` is set.
 
 ---
 
@@ -117,7 +176,7 @@ Severity can be overridden per-rule in `.mapboxlintrc`:
 [rules]
 W002 = "off"      # disable hidden-layer warnings
 W011 = "error"    # treat legacy filters as errors
-W007 = "warn"     # keep as warning (default)
+W013 = "error"    # treat empty symbol layers as errors
 ```
 
 Valid values: `"error"`, `"warn"`, `"off"`.

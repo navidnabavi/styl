@@ -17,6 +17,11 @@ cargo run -- fmt --check style.json  # CI check (exit 1 if would change)
 cargo run -- check --format json style.json  # machine-readable output
 ```
 
+## Development Flow
+
+Before any commit, run cargo build, cargo test, cargo fmt and cargo clippy. Then fix any issues and propose a commit.
+Documents must be updated after any change in rules (format, validate and lint)
+
 ## Architecture
 
 Dual crate: `src/lib.rs` exposes the public API as `styl`; `src/main.rs` is the CLI binary (`styl`).
@@ -73,6 +78,3 @@ When fixing a known gap or adding a validator/linter rule, update the relevant d
 - Mapbox (secondary, `--spec mapbox`): https://docs.mapbox.com/mapbox-gl-js/style-spec/
 
 Divergence between specs tracked in `src/style/spec.rs` (constants only — not yet wired into runtime checks).
-
-## Known gaps (from spec review)
-

@@ -338,7 +338,12 @@ pub fn validate_layers(style: &Style) -> Vec<Diagnostic> {
         if let Some(ref_id) = &layer.layer_ref {
             let path = format!("layers[{}]", i);
             // Find parent layer by ID
-            if let Some((parent_idx, parent_layer)) = style.layers.iter().enumerate().find(|(_, l)| l.id == *ref_id) {
+            if let Some((parent_idx, parent_layer)) = style
+                .layers
+                .iter()
+                .enumerate()
+                .find(|(_, l)| l.id == *ref_id)
+            {
                 // Validate parent's paint as if on ref layer (inherits parent type)
                 if let Some(parent_paint) = &parent_layer.paint {
                     if let Some(obj) = parent_paint.as_object() {
@@ -654,5 +659,4 @@ mod tests {
             .iter()
             .any(|d| d.code == "E018" && d.path.contains("visibility")));
     }
-
 }
