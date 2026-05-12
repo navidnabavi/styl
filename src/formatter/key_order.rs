@@ -4,7 +4,8 @@ use serde_json::Value;
 /// Canonical root key order
 pub const ROOT_KEY_ORDER: &[&str] = &[
     "version", "name", "metadata", "center", "zoom", "bearing", "pitch",
-    "light", "terrain", "fog", "sprite", "glyphs", "transition", "sources", "layers",
+    "light", "terrain", "fog", "sky", "projection", "roll", "font-faces",
+    "sprite", "glyphs", "transition", "sources", "layers",
 ];
 
 /// Canonical layer key order
@@ -15,7 +16,7 @@ pub const LAYER_KEY_ORDER: &[&str] = &[
 
 /// Canonical source key order
 pub const SOURCE_KEY_ORDER: &[&str] = &[
-    "type", "url", "tiles", "bounds", "scheme", "minzoom", "maxzoom",
+    "type", "url", "tiles", "bounds", "scheme", "minzoom", "maxzoom", "tileSize",
     "attribution", "promoteId",
 ];
 

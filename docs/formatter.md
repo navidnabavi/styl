@@ -21,8 +21,8 @@ styl fmt --check style.json      # CI check — exit 1 if formatting would chang
 
 ```
 version → name → metadata → center → zoom → bearing → pitch →
-light → terrain → fog → sprite → glyphs → transition →
-sources → layers
+light → terrain → fog → sky → projection → roll → font-faces →
+sprite → glyphs → transition → sources → layers
 ```
 
 Unknown root keys are appended alphabetically after the known keys.
@@ -37,7 +37,7 @@ minzoom → maxzoom → filter → layout → paint
 ### Source Key Order
 
 ```
-type → url → tiles → bounds → scheme → minzoom → maxzoom →
+type → url → tiles → bounds → scheme → minzoom → maxzoom → tileSize →
 attribution → promoteId
 ```
 
@@ -57,4 +57,3 @@ Running `styl fmt` twice produces the same result. If `--check` passes once, it 
 
 - Does not reformat expression values (preserved as-is)
 - Layer array order and sources map entry order are preserved (only keys *within* each layer/source object are reordered)
-- `tileSize` is not yet in the source key order (appears in the unknown-key alphabetical section)

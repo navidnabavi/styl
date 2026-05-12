@@ -58,6 +58,14 @@ Requires `serde_json` `preserve_order` feature (in Cargo.toml) so `IndexMap`-bac
 
 `0` = clean, `1` = diagnostics found (any error or warning), `2` = tool error (bad JSON, I/O failure).
 
+## Documentation
+
+When fixing a known gap or adding a validator/linter rule, update the relevant doc in `docs/`:
+- New E-code → `docs/validators.md` (add section, remove from Known Gaps)
+- New W-code → `docs/linter.md`
+- Formatter key order change → `docs/formatter.md`
+- After fixing a gap → remove it from Known Gaps in both `CLAUDE.md` and `docs/validators.md`
+
 ## Spec references
 
 - MapLibre v8 (primary): https://maplibre.org/maplibre-style-spec/
@@ -68,11 +76,3 @@ Divergence between specs tracked in `src/style/spec.rs` (constants only — not 
 
 ## Known gaps (from spec review)
 
-- `sprite` only accepts string; spec also allows `[{id, url}]` array form
-- Source `scheme` (must be `"xyz"|"tms"`) and raster-dem `encoding` not enum-validated
-- Source and layer `minzoom`/`maxzoom` ranges not validated
-- Source `bounds` array `[sw_lng, sw_lat, ne_lng, ne_lat]` not validated
-- GeoJSON `data` field logically required but not validated
-- Filter expressions not validated (only legacy syntax detected via W011)
-- `tileSize` missing from `SOURCE_KEY_ORDER` in formatter
-- Newer root properties (`sky`, `projection`, `roll`, `font-faces`) not in `ROOT_KEY_ORDER`

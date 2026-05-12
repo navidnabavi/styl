@@ -1,5 +1,5 @@
 use crate::diagnostic::Diagnostic;
-use crate::style::{layer::LayerType, types::Source, Style};
+use crate::style::{expression::{is_legacy_filter, validate_expression}, layer::LayerType, types::Source, Style};
 
 /// Paint properties valid per layer type
 fn valid_paint_props(lt: &LayerType) -> &'static [&'static str] {
@@ -100,6 +100,26 @@ pub fn validate_layers(style: &Style) -> Vec<Diagnostic> {
     for (i, layer) in style.layers.iter().enumerate() {
         let path = format!("layers[{}]", i);
 
+        // Validate minzoom/maxzoom ranges
+        if let Some(z) = layer.minzoom {
+            if !(0.0..=24.0).contains(&z) {
+                diags.push(Diagnostic::error("E014", format!("{}.minzoom", path),
+                    format!("minzoom {} is out of range [0, 24]", z)));
+            }
+        }
+        if let Some(z) = layer.maxzoom {
+            if !(0.0..=24.0).contains(&z) {
+                diags.push(Diagnostic::error("E014", format!("{}.maxzoom", path),
+                    format!("maxzoom {} is out of range [0, 24]", z)));
+            }
+        }
+        if let (Some(min), Some(max)) = (layer.minzoom, layer.maxzoom) {
+            if min > max {
+                diags.push(Diagnostic::error("E014", format!("{}.minzoom", path),
+                    format!("minzoom ({}) must be <= maxzoom ({})", min, max)));
+            }
+        }
+
         // All non-background layers need a source
         if layer.layer_type != LayerType::Background
             && layer.layer_type != LayerType::Sky
@@ -129,6 +149,14 @@ pub fn validate_layers(style: &Style) -> Vec<Diagnostic> {
                         .with_hint("add \"source-layer\" matching the layer name in the vector tile"),
                     );
                 }
+            }
+        }
+
+        // Validate filter expression (skip legacy filters — W011 handles those)
+        if let Some(filter) = &layer.filter {
+            if !is_legacy_filter(filter) {
+                let filter_path = format!("{}.filter", path);
+                diags.extend(validate_expression(filter, &filter_path, 0));
             }
         }
 
@@ -241,6 +269,74 @@ mod tests {
             }]
         }"##);
         assert!(validate_layers(&style).is_empty());
+    }
+
+    #[test]
+    fn test_layer_invalid_minzoom() {
+        let style = parse(r#"{"version":8,"sources":{},"layers":[{"id":"bg","type":"background","minzoom":25}]}"#);
+        let diags = validate_layers(&style);
+        assert!(diags.iter().any(|d| d.code == "E014"));
+    }
+
+    #[test]
+    fn test_layer_minzoom_gt_maxzoom() {
+        let style = parse(r#"{"version":8,"sources":{},"layers":[{"id":"bg","type":"background","minzoom":10,"maxzoom":5}]}"#);
+        let diags = validate_layers(&style);
+        assert!(diags.iter().any(|d| d.code == "E014"));
+    }
+
+    #[test]
+    fn test_layer_valid_zoom_range() {
+        let style = parse(r#"{"version":8,"sources":{},"layers":[{"id":"bg","type":"background","minzoom":0,"maxzoom":24}]}"#);
+        assert!(validate_layers(&style).is_empty());
+    }
+
+    #[test]
+    fn test_valid_expression_filter() {
+        let style = parse(r#"{
+            "version":8,
+            "sources":{"s":{"type":"vector","url":"mapbox://x"}},
+            "layers":[{"id":"l","type":"fill","source":"s","source-layer":"water",
+                "filter":["==",["get","class"],"lake"]}]
+        }"#);
+        assert!(validate_layers(&style).iter().all(|d| d.code != "E022" && d.code != "E021"));
+    }
+
+    #[test]
+    fn test_filter_unknown_operator() {
+        let style = parse(r#"{
+            "version":8,
+            "sources":{"s":{"type":"vector","url":"mapbox://x"}},
+            "layers":[{"id":"l","type":"fill","source":"s","source-layer":"water",
+                "filter":["not-an-op","value"]}]
+        }"#);
+        let diags = validate_layers(&style);
+        assert!(diags.iter().any(|d| d.code == "E022"));
+    }
+
+    #[test]
+    fn test_filter_empty_array() {
+        let style = parse(r#"{
+            "version":8,
+            "sources":{"s":{"type":"vector","url":"mapbox://x"}},
+            "layers":[{"id":"l","type":"fill","source":"s","source-layer":"water",
+                "filter":[]}]
+        }"#);
+        let diags = validate_layers(&style);
+        assert!(diags.iter().any(|d| d.code == "E020"));
+    }
+
+    #[test]
+    fn test_legacy_filter_not_expression_validated() {
+        // Legacy filters should not generate E022 — W011 handles them separately
+        let style = parse(r#"{
+            "version":8,
+            "sources":{"s":{"type":"vector","url":"mapbox://x"}},
+            "layers":[{"id":"l","type":"fill","source":"s","source-layer":"water",
+                "filter":["==","class","road"]}]
+        }"#);
+        let diags = validate_layers(&style);
+        assert!(!diags.iter().any(|d| d.code == "E022"));
     }
 
     #[test]

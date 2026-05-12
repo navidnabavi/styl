@@ -18,6 +18,7 @@ serde_json = { version = "1", features = ["preserve_order"] }
 toml       = "0.8"
 thiserror  = "1"
 indexmap   = { version = "2", features = ["serde"] }
+geojson    = "1"
 
 [dev-dependencies]
 insta      = "1"

@@ -3,6 +3,20 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use crate::style::layer::Layer;
 
+/// Sprite value: either a single URL string or an array of {id, url} entries (MapLibre v8+)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum SpriteValue {
+    String(String),
+    Array(Vec<SpriteEntry>),
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SpriteEntry {
+    pub id: String,
+    pub url: String,
+}
+
 /// Root MapLibre/Mapbox GL Style object
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Style {
@@ -26,7 +40,7 @@ pub struct Style {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub fog: Option<Value>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub sprite: Option<String>,
+    pub sprite: Option<SpriteValue>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub glyphs: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
