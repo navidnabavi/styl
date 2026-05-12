@@ -199,8 +199,11 @@ fn value_type_name(v: &Value) -> &'static str {
 }
 
 pub fn validate_prop_value(name: &str, value: &Value, path: &str) -> Vec<Diagnostic> {
+    // Expression: array starting with a string operator.
+    // Skip for Array-typed properties — those take literal arrays whose first element may be a string.
     if let Some(arr) = value.as_array() {
-        if arr.first().and_then(|v| v.as_str()).is_some() {
+        let is_array_prop = matches!(get_prop_type(name), Some(PropType::Array));
+        if !is_array_prop && arr.first().and_then(|v| v.as_str()).is_some() {
             return validate_expression(value, path, 0);
         }
     }

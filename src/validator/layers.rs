@@ -199,22 +199,28 @@ pub fn validate_layers(style: &Style) -> Vec<Diagnostic> {
             }
         }
 
-        // Validate paint property values (E018)
+        // Validate paint property values (E018) — only for known-valid props
         if let Some(paint) = &layer.paint {
             if let Some(obj) = paint.as_object() {
+                let valid = valid_paint_props(&layer.layer_type);
                 for (key, value) in obj {
-                    let prop_path = format!("{}.paint.{}", path, key);
-                    diags.extend(validate_prop_value(key, value, &prop_path));
+                    if valid.contains(&key.as_str()) {
+                        let prop_path = format!("{}.paint.{}", path, key);
+                        diags.extend(validate_prop_value(key, value, &prop_path));
+                    }
                 }
             }
         }
 
-        // Validate layout property values (E018)
+        // Validate layout property values (E018) — only for known-valid props
         if let Some(layout) = &layer.layout {
             if let Some(obj) = layout.as_object() {
+                let valid = valid_layout_props(&layer.layer_type);
                 for (key, value) in obj {
-                    let prop_path = format!("{}.layout.{}", path, key);
-                    diags.extend(validate_prop_value(key, value, &prop_path));
+                    if valid.contains(&key.as_str()) {
+                        let prop_path = format!("{}.layout.{}", path, key);
+                        diags.extend(validate_prop_value(key, value, &prop_path));
+                    }
                 }
             }
         }
