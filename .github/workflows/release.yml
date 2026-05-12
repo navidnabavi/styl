@@ -60,8 +60,24 @@ jobs:
               dist/styl-${VERSION}-${{ matrix.target }}
           fi
 
+      - name: Generate commit list
+        id: commits
+        run: |
+          PREV_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          if [ -z "$PREV_TAG" ]; then
+            COMMITS=$(git log --oneline --all)
+          else
+            COMMITS=$(git log ${PREV_TAG}..HEAD --oneline)
+          fi
+          echo "list<<EOF" >> $GITHUB_OUTPUT
+          echo "## Commits" >> $GITHUB_OUTPUT
+          echo "\`\`\`" >> $GITHUB_OUTPUT
+          echo "$COMMITS" >> $GITHUB_OUTPUT
+          echo "\`\`\`" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
       - name: Upload Release Assets
         uses: softprops/action-gh-release@v2
         with:
           files: dist/*
-          generate_release_notes: true
+          body: ${{ steps.commits.outputs.list }}
