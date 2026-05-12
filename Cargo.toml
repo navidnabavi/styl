@@ -19,6 +19,7 @@ toml       = "0.8"
 thiserror  = "1"
 indexmap   = { version = "2", features = ["serde"] }
 geojson    = "1"
+csscolorparser = "0.8"
 
 [dev-dependencies]
 insta      = "1"
