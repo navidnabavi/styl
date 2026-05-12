@@ -71,7 +71,6 @@ fn check_value_stops(value: &Value, path: &str, diags: &mut Vec<Diagnostic>) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use serde_json::json;
 
     fn parse(json: &str) -> Style {
         serde_json::from_str(json).unwrap()

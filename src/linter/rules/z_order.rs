@@ -16,11 +16,11 @@ impl LintRule for FillExtrusionBelowBackground {
         let mut extrusion_layers: Vec<(usize, &str)> = Vec::new();
 
         for (i, layer) in style.layers.iter().enumerate() {
-            if layer.layer_type == LayerType::FillExtrusion {
+            if layer.layer_type == Some(LayerType::FillExtrusion) {
                 extrusion_layers.push((i, &layer.id));
             }
             // A background at index i will occlude any fill-extrusion at index < i
-            if layer.layer_type == LayerType::Background {
+            if layer.layer_type == Some(LayerType::Background) {
                 for &(ex_idx, ex_id) in &extrusion_layers {
                     diags.push(
                         Diagnostic::warning(

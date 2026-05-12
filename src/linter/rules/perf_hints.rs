@@ -172,7 +172,7 @@ impl LintRule for RasterResampling {
     fn check(&self, style: &Style) -> Vec<Diagnostic> {
         let mut diags = Vec::new();
         for (i, layer) in style.layers.iter().enumerate() {
-            if layer.layer_type == LayerType::Raster {
+            if layer.layer_type == Some(LayerType::Raster) {
                 let has_resampling = layer
                     .paint
                     .as_ref()
@@ -210,7 +210,7 @@ impl LintRule for SymbolNoContent {
     fn check(&self, style: &Style) -> Vec<Diagnostic> {
         let mut diags = Vec::new();
         for (i, layer) in style.layers.iter().enumerate() {
-            if layer.layer_type == LayerType::Symbol {
+            if layer.layer_type == Some(LayerType::Symbol) {
                 let layout = layer.layout.as_ref();
                 let has_text = layout.and_then(|l| l.get("text-field")).is_some();
                 let has_icon = layout.and_then(|l| l.get("icon-image")).is_some();
@@ -244,7 +244,7 @@ impl LintRule for SymbolMissingFont {
     fn check(&self, style: &Style) -> Vec<Diagnostic> {
         let mut diags = Vec::new();
         for (i, layer) in style.layers.iter().enumerate() {
-            if layer.layer_type == LayerType::Symbol {
+            if layer.layer_type == Some(LayerType::Symbol) {
                 if let Some(layout) = &layer.layout {
                     let has_text = layout.get("text-field").is_some();
                     let has_font = layout.get("text-font").is_some();
@@ -281,7 +281,7 @@ impl LintRule for BackgroundPatternOverridesColor {
     fn check(&self, style: &Style) -> Vec<Diagnostic> {
         let mut diags = Vec::new();
         for (i, layer) in style.layers.iter().enumerate() {
-            if layer.layer_type == LayerType::Background {
+            if layer.layer_type == Some(LayerType::Background) {
                 if let Some(paint) = &layer.paint {
                     let has_pattern = paint.get("background-pattern").is_some();
                     let has_color = paint.get("background-color").is_some();
@@ -316,7 +316,7 @@ impl LintRule for FillPatternOverridesColor {
     fn check(&self, style: &Style) -> Vec<Diagnostic> {
         let mut diags = Vec::new();
         for (i, layer) in style.layers.iter().enumerate() {
-            if layer.layer_type == LayerType::Fill {
+            if layer.layer_type == Some(LayerType::Fill) {
                 if let Some(paint) = &layer.paint {
                     let has_pattern = paint.get("fill-pattern").is_some();
                     let has_color = paint.get("fill-color").is_some();
@@ -351,7 +351,7 @@ impl LintRule for LinePatternOverridesColor {
     fn check(&self, style: &Style) -> Vec<Diagnostic> {
         let mut diags = Vec::new();
         for (i, layer) in style.layers.iter().enumerate() {
-            if layer.layer_type == LayerType::Line {
+            if layer.layer_type == Some(LayerType::Line) {
                 if let Some(paint) = &layer.paint {
                     let has_pattern = paint.get("line-pattern").is_some();
                     let has_color = paint.get("line-color").is_some();
@@ -386,7 +386,7 @@ impl LintRule for HeatmapMissingColor {
     fn check(&self, style: &Style) -> Vec<Diagnostic> {
         let mut diags = Vec::new();
         for (i, layer) in style.layers.iter().enumerate() {
-            if layer.layer_type == LayerType::Heatmap {
+            if layer.layer_type == Some(LayerType::Heatmap) {
                 let has_color = layer
                     .paint
                     .as_ref()
