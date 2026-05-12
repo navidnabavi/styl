@@ -199,6 +199,112 @@ impl LintRule for RasterResampling {
     }
 }
 
+/// W013: Symbol layer has neither text-field nor icon-image — renders nothing
+pub struct SymbolNoContent;
+
+impl LintRule for SymbolNoContent {
+    fn code(&self) -> &'static str {
+        "W013"
+    }
+
+    fn check(&self, style: &Style) -> Vec<Diagnostic> {
+        let mut diags = Vec::new();
+        for (i, layer) in style.layers.iter().enumerate() {
+            if layer.layer_type == LayerType::Symbol {
+                let layout = layer.layout.as_ref();
+                let has_text = layout.and_then(|l| l.get("text-field")).is_some();
+                let has_icon = layout.and_then(|l| l.get("icon-image")).is_some();
+                if !has_text && !has_icon {
+                    diags.push(
+                        Diagnostic::warning(
+                            "W013",
+                            format!("layers[{}]", i),
+                            format!(
+                                "symbol layer \"{}\" has neither text-field nor icon-image and renders nothing",
+                                layer.id
+                            ),
+                        )
+                        .with_hint("add text-field or icon-image to make this layer visible"),
+                    );
+                }
+            }
+        }
+        diags
+    }
+}
+
+/// W014: Symbol layer uses text-field without text-font
+pub struct SymbolMissingFont;
+
+impl LintRule for SymbolMissingFont {
+    fn code(&self) -> &'static str {
+        "W014"
+    }
+
+    fn check(&self, style: &Style) -> Vec<Diagnostic> {
+        let mut diags = Vec::new();
+        for (i, layer) in style.layers.iter().enumerate() {
+            if layer.layer_type == LayerType::Symbol {
+                if let Some(layout) = &layer.layout {
+                    let has_text = layout.get("text-field").is_some();
+                    let has_font = layout.get("text-font").is_some();
+                    if has_text && !has_font {
+                        diags.push(
+                            Diagnostic::info(
+                                "W014",
+                                format!("layers[{}].layout", i),
+                                format!(
+                                    "symbol layer \"{}\" uses text-field without text-font",
+                                    layer.id
+                                ),
+                            )
+                            .with_hint(
+                                "set text-font to an explicit font stack; omitting falls back to renderer default",
+                            ),
+                        );
+                    }
+                }
+            }
+        }
+        diags
+    }
+}
+
+/// W015: Background layer sets both background-pattern and background-color (pattern wins)
+pub struct BackgroundPatternOverridesColor;
+
+impl LintRule for BackgroundPatternOverridesColor {
+    fn code(&self) -> &'static str {
+        "W015"
+    }
+
+    fn check(&self, style: &Style) -> Vec<Diagnostic> {
+        let mut diags = Vec::new();
+        for (i, layer) in style.layers.iter().enumerate() {
+            if layer.layer_type == LayerType::Background {
+                if let Some(paint) = &layer.paint {
+                    let has_pattern = paint.get("background-pattern").is_some();
+                    let has_color = paint.get("background-color").is_some();
+                    if has_pattern && has_color {
+                        diags.push(
+                            Diagnostic::warning(
+                                "W015",
+                                format!("layers[{}].paint", i),
+                                format!(
+                                    "background layer \"{}\" sets both background-pattern and background-color; pattern takes precedence",
+                                    layer.id
+                                ),
+                            )
+                            .with_hint("remove background-color — it has no effect when background-pattern is set"),
+                        );
+                    }
+                }
+            }
+        }
+        diags
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -303,6 +409,73 @@ mod tests {
             r#"{"version":8,"sources":{"s":{"type":"raster","url":"mapbox://x"}},"layers":[{"id":"r","type":"raster","source":"s","paint":{"raster-resampling":"nearest"}}]}"#,
         );
         assert!(RasterResampling.check(&style).is_empty());
+    }
+
+    #[test]
+    fn test_symbol_no_content() {
+        let style = parse(
+            r#"{"version":8,"sources":{"s":{"type":"vector","url":"mapbox://x"}},"layers":[{"id":"l","type":"symbol","source":"s","source-layer":"x"}]}"#,
+        );
+        assert!(SymbolNoContent
+            .check(&style)
+            .iter()
+            .any(|d| d.code == "W013"));
+    }
+
+    #[test]
+    fn test_symbol_with_text_field_ok() {
+        let style = parse(
+            r#"{"version":8,"sources":{"s":{"type":"vector","url":"mapbox://x"}},"layers":[{"id":"l","type":"symbol","source":"s","source-layer":"x","layout":{"text-field":["get","name"]}}]}"#,
+        );
+        assert!(SymbolNoContent.check(&style).is_empty());
+    }
+
+    #[test]
+    fn test_symbol_with_icon_image_ok() {
+        let style = parse(
+            r#"{"version":8,"sources":{"s":{"type":"vector","url":"mapbox://x"}},"layers":[{"id":"l","type":"symbol","source":"s","source-layer":"x","layout":{"icon-image":"marker"}}]}"#,
+        );
+        assert!(SymbolNoContent.check(&style).is_empty());
+    }
+
+    #[test]
+    fn test_symbol_missing_font() {
+        let style = parse(
+            r#"{"version":8,"sources":{"s":{"type":"vector","url":"mapbox://x"}},"layers":[{"id":"l","type":"symbol","source":"s","source-layer":"x","layout":{"text-field":["get","name"]}}]}"#,
+        );
+        assert!(SymbolMissingFont
+            .check(&style)
+            .iter()
+            .any(|d| d.code == "W014"));
+    }
+
+    #[test]
+    fn test_symbol_with_font_ok() {
+        let style = parse(
+            r#"{"version":8,"sources":{"s":{"type":"vector","url":"mapbox://x"}},"layers":[{"id":"l","type":"symbol","source":"s","source-layer":"x","layout":{"text-field":["get","name"],"text-font":["Open Sans Regular"]}}]}"#,
+        );
+        assert!(SymbolMissingFont.check(&style).is_empty());
+    }
+
+    #[test]
+    fn test_background_pattern_overrides_color() {
+        let style = parse("{\"version\":8,\"sources\":{},\"layers\":[{\"id\":\"bg\",\"type\":\"background\",\"paint\":{\"background-color\":\"#fff\",\"background-pattern\":\"dots\"}}]}");
+        assert!(BackgroundPatternOverridesColor
+            .check(&style)
+            .iter()
+            .any(|d| d.code == "W015"));
+    }
+
+    #[test]
+    fn test_background_pattern_only_ok() {
+        let style = parse("{\"version\":8,\"sources\":{},\"layers\":[{\"id\":\"bg\",\"type\":\"background\",\"paint\":{\"background-pattern\":\"dots\"}}]}");
+        assert!(BackgroundPatternOverridesColor.check(&style).is_empty());
+    }
+
+    #[test]
+    fn test_background_color_only_ok() {
+        let style = parse("{\"version\":8,\"sources\":{},\"layers\":[{\"id\":\"bg\",\"type\":\"background\",\"paint\":{\"background-color\":\"#fff\"}}]}");
+        assert!(BackgroundPatternOverridesColor.check(&style).is_empty());
     }
 
     #[test]
