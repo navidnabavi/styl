@@ -5,8 +5,8 @@ use serde_json::Value;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Layer {
     pub id: String,
-    #[serde(rename = "type")]
-    pub layer_type: LayerType,
+    #[serde(rename = "type", default)]
+    pub layer_type: Option<LayerType>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub metadata: Option<Value>,
     #[serde(rename = "ref", skip_serializing_if = "Option::is_none")]

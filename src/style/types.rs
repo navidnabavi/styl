@@ -243,7 +243,7 @@ mod tests {
         assert_eq!(style.layers[0].id, "roads-line");
         assert_eq!(
             style.layers[0].layer_type,
-            crate::style::layer::LayerType::Line
+            Some(crate::style::layer::LayerType::Line)
         );
     }
 

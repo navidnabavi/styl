@@ -8,7 +8,11 @@ use crate::style::{
 use crate::validator::prop_values::validate_prop_value;
 
 /// Paint properties valid per layer type
-fn valid_paint_props(lt: &LayerType) -> &'static [&'static str] {
+fn valid_paint_props(lt: Option<&LayerType>) -> &'static [&'static str] {
+    let lt = match lt {
+        Some(lt) => lt,
+        None => return &[],
+    };
     match lt {
         LayerType::Background => &[
             "background-color",
@@ -117,7 +121,11 @@ fn valid_paint_props(lt: &LayerType) -> &'static [&'static str] {
 }
 
 /// Layout properties valid per layer type
-fn valid_layout_props(lt: &LayerType) -> &'static [&'static str] {
+fn valid_layout_props(lt: Option<&LayerType>) -> &'static [&'static str] {
+    let lt = match lt {
+        Some(lt) => lt,
+        None => return &[],
+    };
     match lt {
         LayerType::Background
         | LayerType::Hillshade
@@ -219,18 +227,23 @@ pub fn validate_layers(style: &Style) -> Vec<Diagnostic> {
         }
 
         // All non-background layers need a source
-        if layer.layer_type != LayerType::Background
-            && layer.layer_type != LayerType::Sky
-            && layer.source.is_none()
+        if !matches!(
+            &layer.layer_type,
+            Some(LayerType::Background) | Some(LayerType::Sky)
+        ) && layer.source.is_none()
             && layer.layer_ref.is_none()
         {
+            let type_str = layer
+                .layer_type
+                .as_ref()
+                .map_or("unknown".to_string(), |lt| lt.to_string());
             diags.push(
                 Diagnostic::error(
                     "E004",
                     format!("{}.source", path),
                     format!(
                         "layer \"{}\" of type \"{}\" requires a \"source\"",
-                        layer.id, layer.layer_type
+                        layer.id, type_str
                     ),
                 )
                 .with_hint(
@@ -271,7 +284,11 @@ pub fn validate_layers(style: &Style) -> Vec<Diagnostic> {
         // Validate paint properties
         if let Some(paint) = &layer.paint {
             if let Some(obj) = paint.as_object() {
-                let valid = valid_paint_props(&layer.layer_type);
+                let valid = valid_paint_props(layer.layer_type.as_ref());
+                let type_str = layer
+                    .layer_type
+                    .as_ref()
+                    .map_or("unknown".to_string(), |lt| lt.to_string());
                 for key in obj.keys() {
                     if !valid.contains(&key.as_str()) {
                         diags.push(Diagnostic::error(
@@ -279,7 +296,7 @@ pub fn validate_layers(style: &Style) -> Vec<Diagnostic> {
                             format!("{}.paint.{}", path, key),
                             format!(
                                 "\"{}\" is not a valid paint property for \"{}\" layers",
-                                key, layer.layer_type
+                                key, type_str
                             ),
                         ));
                     }
@@ -290,7 +307,11 @@ pub fn validate_layers(style: &Style) -> Vec<Diagnostic> {
         // Validate layout properties
         if let Some(layout) = &layer.layout {
             if let Some(obj) = layout.as_object() {
-                let valid = valid_layout_props(&layer.layer_type);
+                let valid = valid_layout_props(layer.layer_type.as_ref());
+                let type_str = layer
+                    .layer_type
+                    .as_ref()
+                    .map_or("unknown".to_string(), |lt| lt.to_string());
                 for key in obj.keys() {
                     if !valid.contains(&key.as_str()) {
                         diags.push(Diagnostic::error(
@@ -298,7 +319,7 @@ pub fn validate_layers(style: &Style) -> Vec<Diagnostic> {
                             format!("{}.layout.{}", path, key),
                             format!(
                                 "\"{}\" is not a valid layout property for \"{}\" layers",
-                                key, layer.layer_type
+                                key, type_str
                             ),
                         ));
                     }
@@ -309,7 +330,7 @@ pub fn validate_layers(style: &Style) -> Vec<Diagnostic> {
         // Validate paint property values (E018) — only for known-valid props
         if let Some(paint) = &layer.paint {
             if let Some(obj) = paint.as_object() {
-                let valid = valid_paint_props(&layer.layer_type);
+                let valid = valid_paint_props(layer.layer_type.as_ref());
                 for (key, value) in obj {
                     if valid.contains(&key.as_str()) {
                         let prop_path = format!("{}.paint.{}", path, key);
@@ -322,7 +343,7 @@ pub fn validate_layers(style: &Style) -> Vec<Diagnostic> {
         // Validate layout property values (E018) — only for known-valid props
         if let Some(layout) = &layer.layout {
             if let Some(obj) = layout.as_object() {
-                let valid = valid_layout_props(&layer.layer_type);
+                let valid = valid_layout_props(layer.layer_type.as_ref());
                 for (key, value) in obj {
                     if valid.contains(&key.as_str()) {
                         let prop_path = format!("{}.layout.{}", path, key);
@@ -347,7 +368,7 @@ pub fn validate_layers(style: &Style) -> Vec<Diagnostic> {
                 // Validate parent's paint as if on ref layer (inherits parent type)
                 if let Some(parent_paint) = &parent_layer.paint {
                     if let Some(obj) = parent_paint.as_object() {
-                        let valid = valid_paint_props(&parent_layer.layer_type);
+                        let valid = valid_paint_props(parent_layer.layer_type.as_ref());
                         for (key, value) in obj {
                             if valid.contains(&key.as_str()) {
                                 let prop_path = format!("{}.paint.{}", path, key);
@@ -360,7 +381,7 @@ pub fn validate_layers(style: &Style) -> Vec<Diagnostic> {
                 // Validate parent's layout as if on ref layer (inherits parent type)
                 if let Some(parent_layout) = &parent_layer.layout {
                     if let Some(obj) = parent_layout.as_object() {
-                        let valid = valid_layout_props(&parent_layer.layer_type);
+                        let valid = valid_layout_props(parent_layer.layer_type.as_ref());
                         for (key, value) in obj {
                             if valid.contains(&key.as_str()) {
                                 let prop_path = format!("{}.layout.{}", path, key);
@@ -658,5 +679,68 @@ mod tests {
         assert!(diags
             .iter()
             .any(|d| d.code == "E018" && d.path.contains("visibility")));
+    }
+
+    fn from_json(v: serde_json::Value) -> Style {
+        serde_json::from_value(v).unwrap()
+    }
+
+    #[test]
+    fn test_ref_layer_invalid_inherited_paint() {
+        // "ref" key requires json!() macro — raw strings trigger Rust lexer bug on r"
+        let style = from_json(serde_json::json!({
+            "version": 8,
+            "sources": {"s": {"type": "vector", "url": "mapbox://x"}},
+            "layers": [
+                {"id": "base", "type": "fill", "source": "s", "source-layer": "water",
+                 "paint": {"fill-opacity": 2.0}},
+                {"id": "derived", "type": "fill", "ref": "base"}
+            ]
+        }));
+        let diags = validate_layers(&style);
+        assert!(diags
+            .iter()
+            .any(|d| d.code == "E018" && d.path.contains("layers[1]")));
+    }
+
+    #[test]
+    fn test_ref_layer_valid_inherited_paint() {
+        let style = from_json(serde_json::json!({
+            "version": 8,
+            "sources": {"s": {"type": "vector", "url": "mapbox://x"}},
+            "layers": [
+                {"id": "base", "type": "fill", "source": "s", "source-layer": "water",
+                 "paint": {"fill-opacity": 0.8, "fill-color": "#ff0000"}},
+                {"id": "derived", "type": "fill", "ref": "base"}
+            ]
+        }));
+        assert!(validate_layers(&style).iter().all(|d| d.code != "E018"));
+    }
+
+    #[test]
+    fn test_ref_layer_invalid_inherited_layout() {
+        let style = from_json(serde_json::json!({
+            "version": 8,
+            "sources": {"s": {"type": "vector", "url": "mapbox://x"}},
+            "layers": [
+                {"id": "base", "type": "line", "source": "s", "source-layer": "roads",
+                 "layout": {"line-cap": "invalid"}},
+                {"id": "derived", "type": "line", "ref": "base"}
+            ]
+        }));
+        let diags = validate_layers(&style);
+        assert!(diags
+            .iter()
+            .any(|d| d.code == "E018" && d.path.contains("layers[1]")));
+    }
+
+    #[test]
+    fn test_ref_to_nonexistent_no_crash() {
+        let style = from_json(serde_json::json!({
+            "version": 8,
+            "sources": {},
+            "layers": [{"id": "orphan", "type": "fill", "ref": "missing"}]
+        }));
+        assert!(!validate_layers(&style).iter().any(|d| d.code == "E018"));
     }
 }
