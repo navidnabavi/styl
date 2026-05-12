@@ -220,6 +220,23 @@ URL strings are not validated at lint time (remote resource).
 
 ---
 
+## E018 — Invalid paint/layout property value
+
+A paint or layout property has a literal value that does not match the MapLibre v8 spec type, range, or enum.
+
+| Situation | Example message |
+|-----------|----------------|
+| Number out of range | `"fill-opacity" expects number in [0, 1], got 1.5` |
+| Number below minimum | `"line-width" expects number >= 0, got -1` |
+| Invalid enum value | `"line-cap" expects one of "butt", "round", or "square", got "flat"` |
+| Invalid color string | `"fill-color" invalid color: "notacolor"` |
+| Wrong type for color | `"fill-color" expects a CSS color string, got number` |
+| Wrong type for boolean | `"fill-antialias" expects boolean, got string` |
+
+Expression values (arrays starting with an operator string) are validated structurally via E020–E022 instead.
+
+---
+
 ## Known Gaps
 
 None.
