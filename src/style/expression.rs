@@ -354,7 +354,7 @@ fn validate_operator(op: &str, args: &[Value], path: &str, depth: usize) -> Vec<
                 diags.push(Diagnostic::error(
                     "E021",
                     path,
-                    &format!(
+                    format!(
                         "\"{}\" requires interpolation type, input, and at least one stop pair",
                         op
                     ),
@@ -460,7 +460,7 @@ fn validate_operator(op: &str, args: &[Value], path: &str, depth: usize) -> Vec<
             diags.push(Diagnostic::error(
                 "E022",
                 path,
-                &format!("unknown expression operator \"{}\"", op),
+                format!("unknown expression operator \"{}\"", op),
             ));
         }
     }
@@ -518,7 +518,7 @@ fn arity_error(path: &str, op: &str, expected: &str, got: usize) -> Diagnostic {
     Diagnostic::error(
         "E021",
         path,
-        &format!("\"{}\" expects {} but got {}", op, expected, got),
+        format!("\"{}\" expects {} but got {}", op, expected, got),
     )
 }
 

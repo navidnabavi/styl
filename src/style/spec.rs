@@ -1,6 +1,5 @@
 /// Properties that exist in MapLibre but NOT in Mapbox (or vice-versa).
 /// Used to emit warnings when --spec mapbox is set and a maplibre-only property is found.
-
 /// Layer types only in MapLibre (not Mapbox)
 pub const MAPLIBRE_ONLY_LAYER_TYPES: &[&str] = &["sky"];
 
