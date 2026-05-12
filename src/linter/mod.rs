@@ -27,6 +27,9 @@ pub fn run_all(style: &Style) -> Vec<Diagnostic> {
         Box::new(rules::perf_hints::SymbolNoContent),
         Box::new(rules::perf_hints::SymbolMissingFont),
         Box::new(rules::perf_hints::BackgroundPatternOverridesColor),
+        Box::new(rules::perf_hints::FillPatternOverridesColor),
+        Box::new(rules::perf_hints::LinePatternOverridesColor),
+        Box::new(rules::perf_hints::HeatmapMissingColor),
     ];
 
     rules.iter().flat_map(|r| r.check(style)).collect()
