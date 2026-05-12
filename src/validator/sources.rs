@@ -241,18 +241,15 @@ fn validate_geojson(s: &GeoJsonSource, path: &str) -> Vec<Diagnostic> {
         }
         Some(value) if value.is_object() => {
             // Inline GeoJSON object — validate structure via the geojson crate
-            match value.to_string().parse::<geojson::GeoJson>() {
-                Err(e) => {
-                    diags.push(
-                        Diagnostic::error(
-                            "E017",
-                            format!("{}.data", path),
-                            format!("invalid GeoJSON: {}", e),
-                        )
-                        .with_hint("data must be a valid GeoJSON object (RFC 7946)"),
-                    );
-                }
-                Ok(_) => {}
+            if let Err(e) = value.to_string().parse::<geojson::GeoJson>() {
+                diags.push(
+                    Diagnostic::error(
+                        "E017",
+                        format!("{}.data", path),
+                        format!("invalid GeoJSON: {}", e),
+                    )
+                    .with_hint("data must be a valid GeoJSON object (RFC 7946)"),
+                );
             }
         }
         Some(_) => {

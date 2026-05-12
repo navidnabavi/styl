@@ -338,7 +338,7 @@ pub fn validate_layers(style: &Style) -> Vec<Diagnostic> {
         if let Some(ref_id) = &layer.layer_ref {
             let path = format!("layers[{}]", i);
             // Find parent layer by ID
-            if let Some((parent_idx, parent_layer)) = style
+            if let Some((_parent_idx, parent_layer)) = style
                 .layers
                 .iter()
                 .enumerate()

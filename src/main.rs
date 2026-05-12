@@ -78,16 +78,14 @@ fn run(cli: &Cli) -> i32 {
                     }
                     return 1;
                 }
+            } else if let Some(path) = get_file_path(cli) {
+                std::fs::write(path, &formatted)
+                    .map_err(|e| {
+                        eprintln!("error: {}", e);
+                    })
+                    .ok();
             } else {
-                if let Some(path) = get_file_path(cli) {
-                    std::fs::write(path, &formatted)
-                        .map_err(|e| {
-                            eprintln!("error: {}", e);
-                        })
-                        .ok();
-                } else {
-                    print!("{}", formatted);
-                }
+                print!("{}", formatted);
             }
             return 0;
         }
@@ -125,7 +123,7 @@ fn read_input(cli: &Cli) -> Result<(String, String), String> {
     }
     let path = get_file_path(cli).ok_or("no input file specified")?;
     let content =
-        std::fs::read_to_string(&path).map_err(|e| format!("{}: {}", path.display(), e))?;
+        std::fs::read_to_string(path).map_err(|e| format!("{}: {}", path.display(), e))?;
     Ok((content, path.display().to_string()))
 }
 
