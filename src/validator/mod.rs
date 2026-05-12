@@ -2,6 +2,7 @@ use crate::diagnostic::Diagnostic;
 use crate::style::Style;
 
 pub mod layers;
+pub mod prop_values;
 pub mod refs;
 pub mod root;
 pub mod sources;
