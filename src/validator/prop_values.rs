@@ -64,7 +64,7 @@ pub fn get_prop_type(name: &str) -> Option<PropType> {
         "line-blur" => Some(PropType::NumberMin { min: 0.0 }),
         "line-dasharray" => Some(PropType::Array),
         "line-pattern" => Some(PropType::StringType),
-        "line-gradient" => Some(PropType::Color),
+        "line-gradient" => Some(PropType::Any),
 
         // --- Symbol layout ---
         "symbol-placement" => Some(PropType::Enum(&["point", "line", "line-center"])),
@@ -183,7 +183,7 @@ pub fn get_prop_type(name: &str) -> Option<PropType> {
         "heatmap-radius" => Some(PropType::NumberMin { min: 1.0 }),
         "heatmap-weight" => Some(PropType::NumberMin { min: 0.0 }),
         "heatmap-intensity" => Some(PropType::NumberMin { min: 0.0 }),
-        "heatmap-color" => Some(PropType::Color),
+        "heatmap-color" => Some(PropType::Any),
         "heatmap-opacity" => Some(PropType::Number { min: 0.0, max: 1.0 }),
 
         // --- Hillshade paint ---
@@ -206,7 +206,7 @@ pub fn get_prop_type(name: &str) -> Option<PropType> {
             min: 0.0,
             max: 180.0,
         }),
-        "sky-gradient" => Some(PropType::Color),
+        "sky-gradient" => Some(PropType::Any),
         "sky-atmosphere-halo-color" => Some(PropType::Color),
         "sky-atmosphere-color" => Some(PropType::Color),
         "sky-opacity" => Some(PropType::Number { min: 0.0, max: 1.0 }),
