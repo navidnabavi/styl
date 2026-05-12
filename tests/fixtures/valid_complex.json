@@ -67,8 +67,7 @@
       "source": "roads",
       "source-layer": "road_label",
       "layout": {
-        "text-field": ["get", "name"],
-        "text-font": ["Open Sans Regular"]
+        "text-field": ["get", "name"]
       },
       "paint": {
         "text-color": "#333"
