@@ -3,26 +3,27 @@ use std::collections::BTreeMap;
 
 /// Render diagnostics as a self-contained HTML document
 pub fn render_html(diagnostics: &[Diagnostic], filename: &str) -> String {
-    // Count by severity
-    let mut error_count = 0;
-    let mut warning_count = 0;
-    let mut info_count = 0;
+    let mut error_count: usize = 0;
+    let mut warning_count: usize = 0;
+    let mut info_count: usize = 0;
 
+    // Single pass: count and group simultaneously
+    let mut by_severity: BTreeMap<&'static str, BTreeMap<String, Vec<&Diagnostic>>> =
+        BTreeMap::new();
     for d in diagnostics {
-        match d.severity {
-            super::Severity::Error => error_count += 1,
-            super::Severity::Warning => warning_count += 1,
-            super::Severity::Info => info_count += 1,
-        }
-    }
-
-    // Group by severity, then by code
-    let mut by_severity: BTreeMap<String, BTreeMap<String, Vec<&Diagnostic>>> = BTreeMap::new();
-    for d in diagnostics {
-        let severity_key = match d.severity {
-            super::Severity::Error => "error".to_string(),
-            super::Severity::Warning => "warning".to_string(),
-            super::Severity::Info => "info".to_string(),
+        let severity_key: &'static str = match d.severity {
+            super::Severity::Error => {
+                error_count += 1;
+                "error"
+            }
+            super::Severity::Warning => {
+                warning_count += 1;
+                "warning"
+            }
+            super::Severity::Info => {
+                info_count += 1;
+                "info"
+            }
         };
         by_severity
             .entry(severity_key)
@@ -40,7 +41,7 @@ pub fn render_html(diagnostics: &[Diagnostic], filename: &str) -> String {
     html.push_str("  <meta charset=\"UTF-8\">\n");
     html.push_str("  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n");
     html.push_str("  <title>styl Report</title>\n");
-    html.push_str(&render_html_styles());
+    html.push_str(render_html_styles());
     html.push_str("</head>\n");
     html.push_str("<body>\n");
     html.push_str("<div class=\"styl-report\">\n");
@@ -65,7 +66,7 @@ pub fn render_html(diagnostics: &[Diagnostic], filename: &str) -> String {
 
     // Severity groups
     for (severity, codes) in &by_severity {
-        let (emoji, label, count, class_name, summary_class) = match severity.as_str() {
+        let (emoji, label, count, class_name, summary_class) = match *severity {
             "error" => ("🔴", "Errors", error_count, "error-group", "error-summary"),
             "warning" => (
                 "🟡",
@@ -75,7 +76,7 @@ pub fn render_html(diagnostics: &[Diagnostic], filename: &str) -> String {
                 "warning-summary",
             ),
             "info" => ("🔵", "Info", info_count, "info-group", "info-summary"),
-            _ => ("❓", "Unknown", 0, "unknown-group", "unknown-summary"),
+            _ => unreachable!("severity key must be error, warning, or info"),
         };
 
         html.push_str(&format!(
@@ -129,7 +130,7 @@ pub fn render_html(diagnostics: &[Diagnostic], filename: &str) -> String {
 }
 
 /// Render inline CSS styles for HTML output
-fn render_html_styles() -> String {
+fn render_html_styles() -> &'static str {
     r#"  <style>
     * {
       margin: 0;
@@ -251,7 +252,6 @@ fn render_html_styles() -> String {
     }
   </style>
 "#
-    .to_string()
 }
 
 #[cfg(test)]
@@ -314,15 +314,17 @@ mod tests {
 
     #[test]
     fn test_render_html_escaping() {
+        // message: <operator> → &lt;operator&gt;
+        // hint: foo&bar → &amp; (bare ampersand), "val" → &quot;val&quot;
         let diags = vec![Diagnostic::error(
             "E001",
             "layers[0].paint",
             "invalid <operator> in expression",
         )
-        .with_hint("use \"property\" & \"value\"")];
+        .with_hint("use foo&bar and \"value\"")];
         let html = render_html(&diags, "style.json");
-        assert!(html.contains("&lt;operator&gt;"));
-        assert!(html.contains("&amp;"));
-        assert!(!html.contains("<operator>"));
+        assert!(html.contains("&lt;operator&gt;"), "< and > must be escaped");
+        assert!(html.contains("&amp;"), "bare & must be escaped to &amp;");
+        assert!(!html.contains("<operator>"), "raw < must not appear");
     }
 }
