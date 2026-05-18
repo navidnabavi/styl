@@ -96,6 +96,7 @@ fn run(cli: &Cli) -> i32 {
             OutputFormat::Human => render_human(&diagnostics, &filename),
             OutputFormat::Json => render_json(&diagnostics),
             OutputFormat::Github => render_github(&diagnostics, &filename),
+            OutputFormat::Html => unimplemented!("HTML renderer not yet implemented"),
         };
         print!("{}", output);
     }

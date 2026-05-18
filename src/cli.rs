@@ -59,4 +59,5 @@ pub enum OutputFormat {
     Human,
     Json,
     Github,
+    Html,
 }
