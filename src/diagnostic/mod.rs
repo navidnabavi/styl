@@ -69,16 +69,16 @@ impl std::fmt::Display for Severity {
 }
 
 // Re-export renderers
-pub use human::render_human;
-pub use json::render_json;
 pub use github::render_github;
 pub use html::render_html;
+pub use human::render_human;
+pub use json::render_json;
 
 // Module declarations
-pub mod human;
-pub mod json;
 pub mod github;
 pub mod html;
+pub mod human;
+pub mod json;
 
 #[cfg(test)]
 mod tests {

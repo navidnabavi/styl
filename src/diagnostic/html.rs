@@ -26,9 +26,9 @@ pub fn render_html(diagnostics: &[Diagnostic], filename: &str) -> String {
         };
         by_severity
             .entry(severity_key)
-            .or_insert_with(BTreeMap::new)
+            .or_default()
             .entry(d.code.to_string())
-            .or_insert_with(Vec::new)
+            .or_default()
             .push(d);
     }
 
@@ -47,7 +47,10 @@ pub fn render_html(diagnostics: &[Diagnostic], filename: &str) -> String {
 
     // Header
     html.push_str("  <header>\n");
-    html.push_str(&format!("    <h1>{}</h1>\n", html_escape::encode_text(filename)));
+    html.push_str(&format!(
+        "    <h1>{}</h1>\n",
+        html_escape::encode_text(filename)
+    ));
     let now = chrono::Utc::now();
     html.push_str(&format!(
         "    <p>{} error{}, {} warning{}, {} info | {}</p>\n",
@@ -64,7 +67,13 @@ pub fn render_html(diagnostics: &[Diagnostic], filename: &str) -> String {
     for (severity, codes) in &by_severity {
         let (emoji, label, count, class_name, summary_class) = match severity.as_str() {
             "error" => ("🔴", "Errors", error_count, "error-group", "error-summary"),
-            "warning" => ("🟡", "Warnings", warning_count, "warning-group", "warning-summary"),
+            "warning" => (
+                "🟡",
+                "Warnings",
+                warning_count,
+                "warning-group",
+                "warning-summary",
+            ),
             "info" => ("🔵", "Info", info_count, "info-group", "info-summary"),
             _ => ("❓", "Unknown", 0, "unknown-group", "unknown-summary"),
         };
@@ -241,7 +250,8 @@ fn render_html_styles() -> String {
       border-radius: 2px;
     }
   </style>
-"#.to_string()
+"#
+    .to_string()
 }
 
 #[cfg(test)]
@@ -304,10 +314,12 @@ mod tests {
 
     #[test]
     fn test_render_html_escaping() {
-        let diags = vec![
-            Diagnostic::error("E001", "layers[0].paint", "invalid <operator> in expression")
-                .with_hint("use \"property\" & \"value\""),
-        ];
+        let diags = vec![Diagnostic::error(
+            "E001",
+            "layers[0].paint",
+            "invalid <operator> in expression",
+        )
+        .with_hint("use \"property\" & \"value\"")];
         let html = render_html(&diags, "style.json");
         assert!(html.contains("&lt;operator&gt;"));
         assert!(html.contains("&amp;"));
