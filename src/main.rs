@@ -4,7 +4,7 @@ use std::process;
 use styl::{cli, diagnostic, formatter, linter, style, validator};
 
 use cli::{Cli, Command, OutputFormat};
-use diagnostic::{render_github, render_human, render_json};
+use diagnostic::{render_github, render_html, render_human, render_json};
 use linter::config::{discover_config, load_config, Config};
 use style::Style;
 
@@ -96,7 +96,7 @@ fn run(cli: &Cli) -> i32 {
             OutputFormat::Human => render_human(&diagnostics, &filename),
             OutputFormat::Json => render_json(&diagnostics),
             OutputFormat::Github => render_github(&diagnostics, &filename),
-            OutputFormat::Html => unimplemented!("HTML renderer not yet implemented"),
+            OutputFormat::Html => render_html(&diagnostics, &filename),
         };
         print!("{}", output);
     }
