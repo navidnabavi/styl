@@ -68,43 +68,17 @@ impl std::fmt::Display for Severity {
     }
 }
 
-/// Render diagnostics in human-readable format
-pub fn render_human(diagnostics: &[Diagnostic], filename: &str) -> String {
-    let mut out = String::new();
-    for d in diagnostics {
-        out.push_str(&format!(
-            "{}[{}] {}: {}\n  --> {}\n",
-            d.severity, d.code, d.path, d.message, filename
-        ));
-        if let Some(hint) = &d.hint {
-            out.push_str(&format!("  hint: {}\n", hint));
-        }
-        out.push('\n');
-    }
-    out
-}
+// Re-export renderers
+pub use human::render_human;
+pub use json::render_json;
+pub use github::render_github;
+pub use html::render_html;
 
-/// Render diagnostics as JSON array
-pub fn render_json(diagnostics: &[Diagnostic]) -> String {
-    serde_json::to_string_pretty(diagnostics).unwrap_or_else(|_| "[]".to_string())
-}
-
-/// Render diagnostics as GitHub Actions annotations
-pub fn render_github(diagnostics: &[Diagnostic], filename: &str) -> String {
-    let mut out = String::new();
-    for d in diagnostics {
-        let level = match d.severity {
-            Severity::Error => "error",
-            Severity::Warning => "warning",
-            Severity::Info => "notice",
-        };
-        out.push_str(&format!(
-            "::{} file={},title={}::{} — {}\n",
-            level, filename, d.code, d.path, d.message
-        ));
-    }
-    out
-}
+// Module declarations
+pub mod human;
+pub mod json;
+pub mod github;
+pub mod html;
 
 #[cfg(test)]
 mod tests {
@@ -118,29 +92,5 @@ mod tests {
         assert_eq!(d.code, "E001");
         assert_eq!(d.path, "layers[0].source");
         assert!(d.hint.is_some());
-    }
-
-    #[test]
-    fn test_render_human() {
-        let d = Diagnostic::error("E001", "layers[0]", "test error");
-        let out = render_human(&[d], "style.json");
-        assert!(out.contains("error[E001]"));
-        assert!(out.contains("style.json"));
-    }
-
-    #[test]
-    fn test_render_json() {
-        let d = Diagnostic::warning("W001", "layers[0]", "duplicate id");
-        let out = render_json(&[d]);
-        assert!(out.contains("\"severity\""));
-        assert!(out.contains("warning"));
-    }
-
-    #[test]
-    fn test_render_github() {
-        let d = Diagnostic::error("E001", "layers[0].source", "missing source");
-        let out = render_github(&[d], "style.json");
-        assert!(out.starts_with("::error"));
-        assert!(out.contains("file=style.json"));
     }
 }
