@@ -11,7 +11,7 @@ pub struct Cli {
     pub command: Command,
 
     /// Spec version to validate against
-    #[arg(long, global = true, default_value = "maplibre")]
+    #[arg(long, global = true, default_value = "both")]
     pub spec: Spec,
 
     /// Output format
@@ -48,9 +48,13 @@ pub enum Command {
     Validate { file: Option<PathBuf> },
 }
 
-#[derive(Clone, ValueEnum, Debug)]
+#[derive(Clone, ValueEnum, Debug, PartialEq)]
 pub enum Spec {
+    /// Validate compatibility with both MapLibre and Mapbox (default)
+    Both,
+    /// Validate against MapLibre spec only
     Maplibre,
+    /// Validate against Mapbox spec only
     Mapbox,
 }
 

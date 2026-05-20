@@ -237,6 +237,25 @@ Expression values (arrays starting with an operator string) are validated struct
 
 ---
 
-## Known Gaps
+---
 
-None.
+## E023 — Spec incompatibility
+
+A feature in the style is not supported by the target spec (`--spec mapbox` or `--spec both`).
+
+| Feature | MapLibre | Mapbox |
+|---------|----------|--------|
+| `sky` layer type | Yes | No |
+| `terrain` root property | Yes | No |
+| `fog` root property | Yes | No |
+| `distance-from-center` expression | Yes | No |
+
+**Example** — sky layer with `--spec mapbox`:
+
+```json
+{
+  "layers": [{ "id": "s", "type": "sky" }]
+}
+```
+
+**Fix:** remove the incompatible feature, or switch to `--spec maplibre` if targeting MapLibre only.

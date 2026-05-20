@@ -3,6 +3,14 @@ use crate::style::{
     types::{GeoJsonSource, RasterDemSource, RasterSource, Source, VectorSource},
     Style,
 };
+use crate::validator::Validator;
+
+pub struct SourcesValidator;
+impl Validator for SourcesValidator {
+    fn validate(&self, style: &crate::style::Style) -> Vec<crate::diagnostic::Diagnostic> {
+        validate_sources(style)
+    }
+}
 
 pub fn validate_sources(style: &Style) -> Vec<Diagnostic> {
     let mut diags = Vec::new();

@@ -1,4 +1,6 @@
+use crate::cli::Spec;
 use crate::diagnostic::Diagnostic;
+use crate::style::spec::SpecAffinity;
 use crate::style::Style;
 
 pub mod config;
@@ -6,11 +8,16 @@ pub mod rules;
 
 pub trait LintRule {
     fn code(&self) -> &'static str;
+    /// Spec affinity for compat rules. `None` = always runs.
+    /// `Some(MaplibreOnly)` = runs when spec is Mapbox or Both (checks MapLibre-only features).
+    fn spec_affinity(&self) -> Option<SpecAffinity> {
+        None
+    }
     fn check(&self, style: &Style) -> Vec<Diagnostic>;
 }
 
-/// Run all lint rules and collect diagnostics
-pub fn run_all(style: &Style) -> Vec<Diagnostic> {
+/// Run all lint rules, filtered by spec compatibility.
+pub fn run_all(style: &Style, spec: &Spec) -> Vec<Diagnostic> {
     let rules: Vec<Box<dyn LintRule>> = vec![
         Box::new(rules::duplicate_ids::DuplicateIds),
         Box::new(rules::visibility::PermanentlyInvisible),
@@ -32,5 +39,9 @@ pub fn run_all(style: &Style) -> Vec<Diagnostic> {
         Box::new(rules::perf_hints::HeatmapMissingColor),
     ];
 
-    rules.iter().flat_map(|r| r.check(style)).collect()
+    rules
+        .iter()
+        .filter(|r| r.spec_affinity().is_none_or(|a| a.conflicts_with(spec)))
+        .flat_map(|r| r.check(style))
+        .collect()
 }

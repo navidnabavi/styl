@@ -1,5 +1,13 @@
 use crate::diagnostic::Diagnostic;
 use crate::style::{types::SpriteValue, Style};
+use crate::validator::Validator;
+
+pub struct RefsValidator;
+impl Validator for RefsValidator {
+    fn validate(&self, style: &crate::style::Style) -> Vec<crate::diagnostic::Diagnostic> {
+        validate_refs(style)
+    }
+}
 
 pub fn validate_refs(style: &Style) -> Vec<Diagnostic> {
     let mut diags = Vec::new();

@@ -6,6 +6,14 @@ use crate::style::{
     Style,
 };
 use crate::validator::prop_values::validate_prop_value;
+use crate::validator::Validator;
+
+pub struct LayersValidator;
+impl Validator for LayersValidator {
+    fn validate(&self, style: &crate::style::Style) -> Vec<crate::diagnostic::Diagnostic> {
+        validate_layers(style)
+    }
+}
 
 /// Paint properties valid per layer type
 fn valid_paint_props(lt: Option<&LayerType>) -> &'static [&'static str] {

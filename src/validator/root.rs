@@ -1,5 +1,13 @@
 use crate::diagnostic::Diagnostic;
 use crate::style::Style;
+use crate::validator::Validator;
+
+pub struct RootValidator;
+impl Validator for RootValidator {
+    fn validate(&self, style: &crate::style::Style) -> Vec<crate::diagnostic::Diagnostic> {
+        validate_root(style)
+    }
+}
 
 pub fn validate_root(style: &Style) -> Vec<Diagnostic> {
     let mut diags = Vec::new();

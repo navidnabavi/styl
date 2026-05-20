@@ -12,8 +12,8 @@ fn check_fixture(name: &str) -> Vec<Diagnostic> {
         .unwrap_or_else(|e| panic!("invalid JSON in {}: {}", name, e));
     let style: Style = serde_json::from_value(value)
         .unwrap_or_else(|e| panic!("style parse failed for {}: {}", name, e));
-    let mut diags = validator::run_all(&style);
-    diags.extend(linter::run_all(&style));
+    let mut diags = validator::run_all(&style, &styl::cli::Spec::Both);
+    diags.extend(linter::run_all(&style, &styl::cli::Spec::Both));
     diags
 }
 
@@ -87,4 +87,82 @@ fn legacy_filters_triggers_w011() {
         diags.iter().any(|d| d.code == "W011"),
         "expected W011 in legacy_filters.json"
     );
+}
+
+mod spec_compat {
+    use styl::{cli::Spec, diagnostic::Diagnostic, linter, style::Style, validator};
+
+    fn run(json: &str, spec: Spec) -> Vec<Diagnostic> {
+        let value: serde_json::Value = serde_json::from_str(json).unwrap();
+        let style: Style = serde_json::from_value(value).unwrap();
+        let mut diags = validator::run_all(&style, &spec);
+        diags.extend(linter::run_all(&style, &spec));
+        diags
+    }
+
+    fn has_e023(diags: &[Diagnostic]) -> bool {
+        diags.iter().any(|d| d.code == "E023")
+    }
+
+    #[test]
+    fn sky_layer_flagged_by_both() {
+        let style = r#"{"version":8,"sources":{},"layers":[{"id":"s","type":"sky"}]}"#;
+        assert!(has_e023(&run(style, Spec::Both)));
+    }
+
+    #[test]
+    fn sky_layer_flagged_by_mapbox() {
+        let style = r#"{"version":8,"sources":{},"layers":[{"id":"s","type":"sky"}]}"#;
+        assert!(has_e023(&run(style, Spec::Mapbox)));
+    }
+
+    #[test]
+    fn sky_layer_clean_for_maplibre() {
+        let style = r#"{"version":8,"sources":{},"layers":[{"id":"s","type":"sky"}]}"#;
+        assert!(!has_e023(&run(style, Spec::Maplibre)));
+    }
+
+    #[test]
+    fn terrain_flagged_by_both() {
+        let style = r#"{"version":8,"sources":{},"layers":[],"terrain":{"source":"dem"}}"#;
+        assert!(has_e023(&run(style, Spec::Both)));
+    }
+
+    #[test]
+    fn terrain_clean_for_maplibre() {
+        let style = r#"{"version":8,"sources":{},"layers":[],"terrain":{"source":"dem"}}"#;
+        assert!(!has_e023(&run(style, Spec::Maplibre)));
+    }
+
+    #[test]
+    fn fog_flagged_by_mapbox() {
+        let style = r#"{"version":8,"sources":{},"layers":[],"fog":{"color":"white"}}"#;
+        assert!(has_e023(&run(style, Spec::Mapbox)));
+    }
+
+    #[test]
+    fn fog_clean_for_maplibre() {
+        let style = r#"{"version":8,"sources":{},"layers":[],"fog":{"color":"white"}}"#;
+        assert!(!has_e023(&run(style, Spec::Maplibre)));
+    }
+
+    #[test]
+    fn clean_style_passes_all_specs() {
+        let style = r#"{"version":8,"sources":{},"layers":[{"id":"bg","type":"background"}]}"#;
+        assert!(!has_e023(&run(style, Spec::Both)));
+        assert!(!has_e023(&run(style, Spec::Maplibre)));
+        assert!(!has_e023(&run(style, Spec::Mapbox)));
+    }
+
+    #[test]
+    fn distance_from_center_flagged_by_mapbox() {
+        let style = r#"{"version":8,"sources":{},"layers":[{"id":"c","type":"circle","paint":{"circle-radius":["distance-from-center"]}}]}"#;
+        assert!(has_e023(&run(style, Spec::Mapbox)));
+    }
+
+    #[test]
+    fn distance_from_center_clean_for_maplibre() {
+        let style = r#"{"version":8,"sources":{},"layers":[{"id":"c","type":"circle","paint":{"circle-radius":["distance-from-center"]}}]}"#;
+        assert!(!has_e023(&run(style, Spec::Maplibre)));
+    }
 }
