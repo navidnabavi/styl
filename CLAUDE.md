@@ -25,7 +25,7 @@ cargo run -- check --format json style.json  # machine-readable output
 cargo build                  # must compile clean
 cargo test                   # all 4 suites must pass
 cargo fmt --check            # zero formatting diffs (run cargo fmt to fix)
-cargo clippy                 # zero errors
+cargo clippy -- -D warnings  # zero errors (same strictness as CI)
 ```
 
 Never commit if any of these fail. No exceptions for "just a docs change" or "just a refactor".
