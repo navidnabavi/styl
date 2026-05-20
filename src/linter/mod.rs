@@ -41,10 +41,7 @@ pub fn run_all(style: &Style, spec: &Spec) -> Vec<Diagnostic> {
 
     rules
         .iter()
-        .filter(|r| {
-            r.spec_affinity()
-                .map_or(true, |a| a.conflicts_with(spec))
-        })
+        .filter(|r| r.spec_affinity().map_or(true, |a| a.conflicts_with(spec)))
         .flat_map(|r| r.check(style))
         .collect()
 }
