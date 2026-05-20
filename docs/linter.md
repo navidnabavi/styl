@@ -153,6 +153,21 @@ Fix: add `text-font` with an explicit font stack.
 
 ---
 
+## W015 — Background pattern overrides color
+
+A background layer sets both `background-pattern` and `background-color`. The pattern takes precedence; the color has no effect.
+
+```json
+"paint": {
+  "background-color": "#ffffff",
+  "background-pattern": "dots"
+}
+```
+
+Fix: remove `background-color` when `background-pattern` is set.
+
+---
+
 ## W016 — Fill pattern overrides color
 
 A fill layer sets both `fill-pattern` and `fill-color`. The pattern takes precedence; the color has no effect.
@@ -182,21 +197,6 @@ Fix: remove `line-color` when `line-pattern` is set.
 A heatmap layer does not set `heatmap-color`. The layer renders monochrome using the renderer default.
 
 Fix: set `heatmap-color` to an `interpolate` expression mapping density to a meaningful color ramp.
-
----
-
-## W015 — Background pattern overrides color
-
-A background layer sets both `background-pattern` and `background-color`. The pattern takes precedence; the color has no effect.
-
-```json
-"paint": {
-  "background-color": "#ffffff",
-  "background-pattern": "dots"
-}
-```
-
-Fix: remove `background-color` when `background-pattern` is set.
 
 ---
 
