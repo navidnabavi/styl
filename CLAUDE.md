@@ -19,7 +19,17 @@ cargo run -- check --format json style.json  # machine-readable output
 
 ## Development Flow
 
-Before any commit, run cargo build, cargo test, cargo fmt and cargo clippy. Then fix any issues and propose a commit.
+**Before every commit, without exception, run all four checks and fix any failures:**
+
+```bash
+cargo build                  # must compile clean
+cargo test                   # all 4 suites must pass
+cargo fmt --check            # zero formatting diffs (run cargo fmt to fix)
+cargo clippy                 # zero errors
+```
+
+Never commit if any of these fail. No exceptions for "just a docs change" or "just a refactor".
+
 Documents must be updated after any change in rules (format, validate and lint)
 
 ## Architecture
