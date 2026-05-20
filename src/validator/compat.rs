@@ -10,7 +10,9 @@ pub struct FogCompatValidator;
 pub struct ExpressionCompatValidator;
 
 impl Validator for SkyCompatValidator {
-    fn spec_affinity(&self) -> Option<SpecAffinity> { Some(SpecAffinity::MaplibreOnly) }
+    fn spec_affinity(&self) -> Option<SpecAffinity> {
+        Some(SpecAffinity::MaplibreOnly)
+    }
     fn validate(&self, style: &Style) -> Vec<Diagnostic> {
         style
             .layers
@@ -30,7 +32,9 @@ impl Validator for SkyCompatValidator {
 }
 
 impl Validator for TerrainCompatValidator {
-    fn spec_affinity(&self) -> Option<SpecAffinity> { Some(SpecAffinity::MaplibreOnly) }
+    fn spec_affinity(&self) -> Option<SpecAffinity> {
+        Some(SpecAffinity::MaplibreOnly)
+    }
     fn validate(&self, style: &Style) -> Vec<Diagnostic> {
         if style.terrain.is_some() {
             vec![Diagnostic::error(
@@ -46,15 +50,15 @@ impl Validator for TerrainCompatValidator {
 }
 
 impl Validator for FogCompatValidator {
-    fn spec_affinity(&self) -> Option<SpecAffinity> { Some(SpecAffinity::MaplibreOnly) }
+    fn spec_affinity(&self) -> Option<SpecAffinity> {
+        Some(SpecAffinity::MaplibreOnly)
+    }
     fn validate(&self, style: &Style) -> Vec<Diagnostic> {
         if style.fog.is_some() {
-            vec![Diagnostic::error(
-                "E023",
-                "fog",
-                "\"fog\" is not supported in Mapbox spec",
-            )
-            .with_hint("remove \"fog\" or switch to --spec maplibre")]
+            vec![
+                Diagnostic::error("E023", "fog", "\"fog\" is not supported in Mapbox spec")
+                    .with_hint("remove \"fog\" or switch to --spec maplibre"),
+            ]
         } else {
             vec![]
         }
@@ -62,7 +66,9 @@ impl Validator for FogCompatValidator {
 }
 
 impl Validator for ExpressionCompatValidator {
-    fn spec_affinity(&self) -> Option<SpecAffinity> { Some(SpecAffinity::MaplibreOnly) }
+    fn spec_affinity(&self) -> Option<SpecAffinity> {
+        Some(SpecAffinity::MaplibreOnly)
+    }
     fn validate(&self, style: &Style) -> Vec<Diagnostic> {
         let mut diags = Vec::new();
         for (i, layer) in style.layers.iter().enumerate() {
@@ -124,12 +130,15 @@ mod tests {
     fn sky_compat_emits_e023_for_sky_layer() {
         let style = parse(r#"{"version":8,"sources":{},"layers":[{"id":"s","type":"sky"}]}"#);
         let diags = SkyCompatValidator.validate(&style);
-        assert!(diags.iter().any(|d| d.code == "E023" && d.path.contains("layers[0]")));
+        assert!(diags
+            .iter()
+            .any(|d| d.code == "E023" && d.path.contains("layers[0]")));
     }
 
     #[test]
     fn sky_compat_clean_for_non_sky_layer() {
-        let style = parse(r#"{"version":8,"sources":{},"layers":[{"id":"bg","type":"background"}]}"#);
+        let style =
+            parse(r#"{"version":8,"sources":{},"layers":[{"id":"bg","type":"background"}]}"#);
         assert!(SkyCompatValidator.validate(&style).is_empty());
     }
 
@@ -138,7 +147,9 @@ mod tests {
     fn terrain_compat_emits_e023_when_terrain_present() {
         let style = parse(r#"{"version":8,"sources":{},"layers":[],"terrain":{"source":"dem"}}"#);
         let diags = TerrainCompatValidator.validate(&style);
-        assert!(diags.iter().any(|d| d.code == "E023" && d.path == "terrain"));
+        assert!(diags
+            .iter()
+            .any(|d| d.code == "E023" && d.path == "terrain"));
     }
 
     #[test]
@@ -164,7 +175,8 @@ mod tests {
     // ExpressionCompatValidator
     #[test]
     fn expression_compat_emits_e023_for_distance_from_center() {
-        let style = parse(r#"{
+        let style = parse(
+            r#"{
             "version":8,
             "sources":{},
             "layers":[{
@@ -172,14 +184,18 @@ mod tests {
                 "type":"circle",
                 "paint":{"circle-radius":["distance-from-center"]}
             }]
-        }"#);
+        }"#,
+        );
         let diags = ExpressionCompatValidator.validate(&style);
-        assert!(diags.iter().any(|d| d.code == "E023" && d.message.contains("distance-from-center")));
+        assert!(diags
+            .iter()
+            .any(|d| d.code == "E023" && d.message.contains("distance-from-center")));
     }
 
     #[test]
     fn expression_compat_clean_for_standard_expression() {
-        let style = parse(r#"{
+        let style = parse(
+            r#"{
             "version":8,
             "sources":{},
             "layers":[{
@@ -187,7 +203,8 @@ mod tests {
                 "type":"circle",
                 "paint":{"circle-radius":["get","zoom"]}
             }]
-        }"#);
+        }"#,
+        );
         assert!(ExpressionCompatValidator.validate(&style).is_empty());
     }
 }
