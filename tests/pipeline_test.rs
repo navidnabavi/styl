@@ -12,7 +12,7 @@ fn check_fixture(name: &str) -> Vec<Diagnostic> {
         .unwrap_or_else(|e| panic!("invalid JSON in {}: {}", name, e));
     let style: Style = serde_json::from_value(value)
         .unwrap_or_else(|e| panic!("style parse failed for {}: {}", name, e));
-    let mut diags = validator::run_all(&style);
+    let mut diags = validator::run_all(&style, &styl::cli::Spec::Both);
     diags.extend(linter::run_all(&style));
     diags
 }

@@ -45,7 +45,7 @@ fn run(cli: &Cli) -> i32 {
                     return 2;
                 }
             };
-            let mut diags = validator::run_all(&style);
+            let mut diags = validator::run_all(&style, &crate::cli::Spec::Both);
             diags.extend(linter::run_all(&style));
             diags
         }
@@ -57,7 +57,7 @@ fn run(cli: &Cli) -> i32 {
                     return 2;
                 }
             };
-            validator::run_all(&style)
+            validator::run_all(&style, &crate::cli::Spec::Both)
         }
         Command::Lint { .. } => {
             let style: Style = match serde_json::from_value(value.clone()) {
