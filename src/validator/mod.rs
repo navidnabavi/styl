@@ -34,7 +34,7 @@ pub fn run_all(style: &Style, spec: &Spec) -> Vec<Diagnostic> {
 
     validators
         .iter()
-        .filter(|v| v.spec_affinity().map_or(true, |a| a.conflicts_with(spec)))
+        .filter(|v| v.spec_affinity().is_none_or(|a| a.conflicts_with(spec)))
         .flat_map(|v| v.validate(style))
         .collect()
 }
