@@ -16,6 +16,7 @@
 ```bash
 styl check style.json
 styl check --format json style.json
+styl check --format html style.json > report.html
 styl fmt --check style.json      # CI mode: exit 1 if formatting would change
 styl lint --spec mapbox style.json
 ```
@@ -33,7 +34,7 @@ styl lint --spec mapbox style.json
 | Flag | Default | Description |
 |------|---------|-------------|
 | `--spec maplibre\|mapbox` | `maplibre` | Style spec to validate against |
-| `--format human\|json\|github` | `human` | Output format |
+| `--format human\|json\|github\|html` | `human` | Output format |
 | `--config <path>` | auto-discover | Path to `.mapboxlintrc` config file |
 | `--stdin` | — | Read style from stdin instead of a file |
 | `-q, --quiet` | — | Suppress output; use exit code only |

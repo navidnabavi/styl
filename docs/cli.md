@@ -16,6 +16,7 @@ Run validators and linter together. Emits all E-codes and W-codes.
 styl check style.json
 styl check --format json style.json
 styl check --format github style.json    # GitHub Actions annotations
+styl check --format html style.json      # self-contained HTML report
 styl check --spec mapbox style.json
 styl check --stdin < style.json
 styl check -q style.json                 # exit code only, no output
@@ -70,6 +71,13 @@ Output format for diagnostics.
 | `human` | Colored, human-readable (default) |
 | `json` | Machine-readable JSON array |
 | `github` | GitHub Actions `::error` / `::warning` annotations |
+| `html` | Self-contained HTML report with dark theme and collapsible sections |
+
+**HTML output** groups diagnostics by severity (errors → warnings → info), then by code. Each group is collapsible via native `<details>/<summary>`. No external dependencies — single file, inline CSS.
+
+```bash
+styl check style.json --format html > report.html
+```
 
 **JSON output shape:**
 ```json
