@@ -11,7 +11,8 @@ pub mod root;
 pub mod sources;
 
 pub trait Validator {
-    /// Which spec this validator is exclusive to. `None` = runs for all specs.
+    /// Spec affinity for compat validators. `None` = always runs.
+    /// `Some(MaplibreOnly)` = runs when spec is Mapbox or Both (checks MapLibre-only features).
     fn spec_affinity(&self) -> Option<SpecAffinity> {
         None
     }
@@ -35,7 +36,7 @@ pub fn run_all(style: &Style, spec: &Spec) -> Vec<Diagnostic> {
         .iter()
         .filter(|v| {
             v.spec_affinity()
-                .map_or(true, |a| !a.conflicts_with(spec))
+                .map_or(true, |a| a.conflicts_with(spec))
         })
         .flat_map(|v| v.validate(style))
         .collect()
