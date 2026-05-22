@@ -3,6 +3,8 @@
 **Linter, validator, and formatter for MapLibre GL / Mapbox GL style JSON.**  
 Catch spec violations, enforce best practices, and keep style files consistent — in CI or locally.
 
+![styl overview](assets/overview.svg)
+
 [![CI](https://github.com/navidnabavi/styl/actions/workflows/rust.yml/badge.svg)](https://github.com/navidnabavi/styl/actions/workflows/rust.yml)
 [![Rust](https://img.shields.io/badge/rust-2021_edition-orange.svg)](https://www.rust-lang.org)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
@@ -131,36 +133,6 @@ indent = 4
 ```
 
 `styl` walks up the directory tree to find it automatically.
-
----
-
-## Diagnostics Reference
-
-### Validators (E-codes) — spec violations
-
-| Code | Description |
-|------|-------------|
-| E001 | Invalid or missing `version` (must be 8) |
-| E002 | Invalid `center`, `zoom`, `bearing`, or `pitch` value |
-| E003 | Source missing required `url` or `tiles` field |
-| E004 | Layer references non-existent source |
-| E005 | Vector layer missing `source-layer` |
-
-→ Full reference: [docs/validators.md](docs/validators.md)
-
-### Linter (W-codes) — best practices
-
-| Code | Description |
-|------|-------------|
-| W001 | Duplicate layer IDs |
-| W002 | Permanently invisible layer |
-| W003 | Layer not reachable (unused) |
-| W004 | Out-of-order stops in paint properties |
-| W005 | Z-order anomaly |
-| W006 | Expression depth > 10 |
-| W007–W012 | Performance hints |
-
-→ Full reference: [docs/linter.md](docs/linter.md)
 
 ---
 

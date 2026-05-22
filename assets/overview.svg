@@ -1,0 +1,139 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 480" width="900" height="480">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0d1117"/>
+      <stop offset="100%" style="stop-color:#161b22"/>
+    </linearGradient>
+    <linearGradient id="cardGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#1c2128"/>
+      <stop offset="100%" style="stop-color:#161b22"/>
+    </linearGradient>
+    <linearGradient id="accentGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#2ea043"/>
+      <stop offset="100%" style="stop-color:#3fb950"/>
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+      <feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="shadow">
+      <feDropShadow dx="0" dy="2" stdDeviation="4" flood-color="#000000" flood-opacity="0.4"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="900" height="480" fill="url(#bg)"/>
+
+  <!-- Subtle grid -->
+  <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+    <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#21262d" stroke-width="0.5"/>
+  </pattern>
+  <rect width="900" height="480" fill="url(#grid)" opacity="0.4"/>
+
+  <!-- Top accent line -->
+  <rect x="0" y="0" width="900" height="3" fill="url(#accentGrad)"/>
+
+  <!-- Logo / Title area -->
+  <text x="60" y="72" font-family="'SF Mono', 'Fira Code', monospace" font-size="52" font-weight="700" fill="#e6edf3" filter="url(#glow)">styl</text>
+  <rect x="60" y="82" width="88" height="3" fill="url(#accentGrad)" rx="2"/>
+  <text x="60" y="112" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="14" fill="#8b949e">Linter · Validator · Formatter for MapLibre GL / Mapbox GL</text>
+
+  <!-- Arrow flow: style.json → styl → diagnostics -->
+  <!-- style.json box -->
+  <rect x="60" y="140" width="130" height="48" rx="8" fill="#1c2128" stroke="#30363d" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="125" y="159" font-family="'SF Mono', 'Fira Code', monospace" font-size="11" fill="#8b949e" text-anchor="middle">INPUT</text>
+  <text x="125" y="178" font-family="'SF Mono', 'Fira Code', monospace" font-size="13" fill="#79c0ff" text-anchor="middle">style.json</text>
+
+  <!-- Arrow 1 -->
+  <line x1="190" y1="164" x2="220" y2="164" stroke="#30363d" stroke-width="2"/>
+  <polygon points="220,158 232,164 220,170" fill="#30363d"/>
+
+  <!-- styl engine box -->
+  <rect x="232" y="130" width="130" height="68" rx="8" fill="#1c2128" stroke="#2ea043" stroke-width="2" filter="url(#shadow)"/>
+  <text x="297" y="152" font-family="'SF Mono', 'Fira Code', monospace" font-size="11" fill="#8b949e" text-anchor="middle">ENGINE</text>
+  <text x="297" y="175" font-family="'SF Mono', 'Fira Code', monospace" font-size="22" font-weight="700" fill="#3fb950" text-anchor="middle" filter="url(#glow)">styl</text>
+
+  <!-- Arrow 2 -->
+  <line x1="362" y1="164" x2="392" y2="164" stroke="#30363d" stroke-width="2"/>
+  <polygon points="392,158 404,164 392,170" fill="#30363d"/>
+
+  <!-- Output box -->
+  <rect x="404" y="140" width="130" height="48" rx="8" fill="#1c2128" stroke="#30363d" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="469" y="159" font-family="'SF Mono', 'Fira Code', monospace" font-size="11" fill="#8b949e" text-anchor="middle">OUTPUT</text>
+  <text x="469" y="178" font-family="'SF Mono', 'Fira Code', monospace" font-size="13" fill="#e6edf3" text-anchor="middle">diagnostics</text>
+
+  <!-- Three pillars -->
+  <!-- Validate -->
+  <rect x="60" y="222" width="178" height="112" rx="10" fill="url(#cardGrad)" stroke="#30363d" stroke-width="1.5" filter="url(#shadow)"/>
+  <rect x="60" y="222" width="178" height="4" rx="2" fill="#f85149"/>
+  <text x="149" y="252" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="13" font-weight="600" fill="#e6edf3" text-anchor="middle">Validate</text>
+  <text x="149" y="270" font-family="'SF Mono', monospace" font-size="10" fill="#f85149" text-anchor="middle">E-codes</text>
+  <text x="149" y="292" font-family="-apple-system, sans-serif" font-size="11" fill="#8b949e" text-anchor="middle">Missing fields</text>
+  <text x="149" y="308" font-family="-apple-system, sans-serif" font-size="11" fill="#8b949e" text-anchor="middle">Invalid values</text>
+  <text x="149" y="324" font-family="-apple-system, sans-serif" font-size="11" fill="#8b949e" text-anchor="middle">Broken source refs</text>
+
+  <!-- Lint -->
+  <rect x="258" y="222" width="178" height="112" rx="10" fill="url(#cardGrad)" stroke="#30363d" stroke-width="1.5" filter="url(#shadow)"/>
+  <rect x="258" y="222" width="178" height="4" rx="2" fill="#e3b341"/>
+  <text x="347" y="252" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="13" font-weight="600" fill="#e6edf3" text-anchor="middle">Lint</text>
+  <text x="347" y="270" font-family="'SF Mono', monospace" font-size="10" fill="#e3b341" text-anchor="middle">W-codes</text>
+  <text x="347" y="292" font-family="-apple-system, sans-serif" font-size="11" fill="#8b949e" text-anchor="middle">Invisible layers</text>
+  <text x="347" y="308" font-family="-apple-system, sans-serif" font-size="11" fill="#8b949e" text-anchor="middle">Legacy filter syntax</text>
+  <text x="347" y="324" font-family="-apple-system, sans-serif" font-size="11" fill="#8b949e" text-anchor="middle">Perf anti-patterns</text>
+
+  <!-- Format -->
+  <rect x="456" y="222" width="178" height="112" rx="10" fill="url(#cardGrad)" stroke="#30363d" stroke-width="1.5" filter="url(#shadow)"/>
+  <rect x="456" y="222" width="178" height="4" rx="2" fill="#3fb950"/>
+  <text x="545" y="252" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="13" font-weight="600" fill="#e6edf3" text-anchor="middle">Format</text>
+  <text x="545" y="270" font-family="'SF Mono', monospace" font-size="10" fill="#3fb950" text-anchor="middle">canonical order</text>
+  <text x="545" y="292" font-family="-apple-system, sans-serif" font-size="11" fill="#8b949e" text-anchor="middle">Key ordering</text>
+  <text x="545" y="308" font-family="-apple-system, sans-serif" font-size="11" fill="#8b949e" text-anchor="middle">CI --check mode</text>
+  <text x="545" y="324" font-family="-apple-system, sans-serif" font-size="11" fill="#8b949e" text-anchor="middle">In-place rewrite</text>
+
+  <!-- Output formats panel -->
+  <rect x="60" y="358" width="574" height="60" rx="10" fill="url(#cardGrad)" stroke="#30363d" stroke-width="1.5"/>
+  <text x="80" y="381" font-family="-apple-system, sans-serif" font-size="11" font-weight="600" fill="#8b949e">OUTPUT FORMATS</text>
+  <!-- human -->
+  <rect x="80" y="390" width="70" height="18" rx="4" fill="#1f2937" stroke="#374151" stroke-width="1"/>
+  <text x="115" y="403" font-family="'SF Mono', monospace" font-size="10" fill="#e6edf3" text-anchor="middle">human</text>
+  <!-- json -->
+  <rect x="162" y="390" width="55" height="18" rx="4" fill="#1f2937" stroke="#374151" stroke-width="1"/>
+  <text x="189" y="403" font-family="'SF Mono', monospace" font-size="10" fill="#e6edf3" text-anchor="middle">json</text>
+  <!-- github -->
+  <rect x="229" y="390" width="70" height="18" rx="4" fill="#1f2937" stroke="#374151" stroke-width="1"/>
+  <text x="264" y="403" font-family="'SF Mono', monospace" font-size="10" fill="#e6edf3" text-anchor="middle">github</text>
+  <!-- stdin -->
+  <rect x="311" y="390" width="55" height="18" rx="4" fill="#1f2937" stroke="#374151" stroke-width="1"/>
+  <text x="338" y="403" font-family="'SF Mono', monospace" font-size="10" fill="#e6edf3" text-anchor="middle">stdin</text>
+  <!-- .mapboxlintrc -->
+  <rect x="378" y="390" width="100" height="18" rx="4" fill="#1f2937" stroke="#374151" stroke-width="1"/>
+  <text x="428" y="403" font-family="'SF Mono', monospace" font-size="10" fill="#e6edf3" text-anchor="middle">.mapboxlintrc</text>
+
+  <!-- Right side: exit codes + install -->
+  <rect x="660" y="140" width="200" height="278" rx="10" fill="url(#cardGrad)" stroke="#30363d" stroke-width="1.5" filter="url(#shadow)"/>
+
+  <text x="760" y="166" font-family="-apple-system, sans-serif" font-size="11" font-weight="600" fill="#8b949e" text-anchor="middle">EXIT CODES</text>
+  <text x="680" y="192" font-family="'SF Mono', monospace" font-size="12" fill="#3fb950">0</text>
+  <text x="700" y="192" font-family="-apple-system, sans-serif" font-size="11" fill="#8b949e">clean</text>
+  <text x="680" y="212" font-family="'SF Mono', monospace" font-size="12" fill="#e3b341">1</text>
+  <text x="700" y="212" font-family="-apple-system, sans-serif" font-size="11" fill="#8b949e">diagnostics found</text>
+  <text x="680" y="232" font-family="'SF Mono', monospace" font-size="12" fill="#f85149">2</text>
+  <text x="700" y="232" font-family="-apple-system, sans-serif" font-size="11" fill="#8b949e">tool error</text>
+
+  <line x1="675" y1="248" x2="845" y2="248" stroke="#21262d" stroke-width="1"/>
+
+  <text x="760" y="270" font-family="-apple-system, sans-serif" font-size="11" font-weight="600" fill="#8b949e" text-anchor="middle">INSTALL</text>
+  <text x="760" y="292" font-family="'SF Mono', monospace" font-size="10" fill="#3fb950" text-anchor="middle">brew install</text>
+  <text x="760" y="308" font-family="'SF Mono', monospace" font-size="10" fill="#79c0ff" text-anchor="middle">curl | bash</text>
+  <text x="760" y="324" font-family="'SF Mono', monospace" font-size="10" fill="#e6edf3" text-anchor="middle">cargo install</text>
+
+  <line x1="675" y1="340" x2="845" y2="340" stroke="#21262d" stroke-width="1"/>
+
+  <text x="760" y="362" font-family="-apple-system, sans-serif" font-size="11" font-weight="600" fill="#8b949e" text-anchor="middle">SPECS</text>
+  <text x="760" y="382" font-family="-apple-system, sans-serif" font-size="11" fill="#e6edf3" text-anchor="middle">MapLibre v8</text>
+  <text x="760" y="398" font-family="-apple-system, sans-serif" font-size="11" fill="#8b949e" text-anchor="middle">Mapbox v8</text>
+
+  <!-- Bottom: GitHub link -->
+  <text x="60" y="452" font-family="'SF Mono', monospace" font-size="11" fill="#3fb950">github.com/navidnabavi/styl</text>
+  <text x="760" y="452" font-family="-apple-system, sans-serif" font-size="11" fill="#8b949e" text-anchor="middle">written in Rust</text>
+</svg>
