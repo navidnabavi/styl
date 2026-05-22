@@ -1,6 +1,6 @@
 [package]
 name = "styl"
-version = "0.0.2"
+version = "0.0.3"
 edition = "2021"
 license = "MIT"
 description = "Linter, validator, and formatter for MapLibre GL / Mapbox GL style JSON"
