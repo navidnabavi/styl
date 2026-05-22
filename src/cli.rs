@@ -18,7 +18,7 @@ pub struct Cli {
     #[arg(long, global = true, default_value = "human")]
     pub format: OutputFormat,
 
-    /// Path to .mapboxlintrc config file
+    /// Path to .stylrc config file
     #[arg(long, global = true)]
     pub config: Option<PathBuf>,
 

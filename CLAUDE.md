@@ -60,7 +60,7 @@ Dual crate: `src/lib.rs` exposes the public API as `styl`; `src/main.rs` is the 
 
 Rules in `src/linter/rules/`: `duplicate_ids` (W001), `visibility` (W002), `unused_layers` (W003), `stop_order` (W004), `z_order` (W005), `expression_depth` (W006), `perf_hints` (W007–W012).
 
-Config in `src/linter/config.rs` — TOML `.mapboxlintrc` auto-discovered by walking up the directory tree. Supports per-rule severity overrides (error/warn/off) and `format.indent`.
+Config in `src/linter/config.rs` — TOML `.stylrc` auto-discovered by walking up the directory tree. Supports per-rule severity overrides (error/warn/off) and `format.indent`.
 
 ### Formatter
 

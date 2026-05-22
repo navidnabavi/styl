@@ -1,6 +1,6 @@
 # Configuration
 
-`styl` reads a TOML config file named `.mapboxlintrc`. When `--config` is not specified, `styl` searches for `.mapboxlintrc` by walking up the directory tree from the style file's location.
+`styl` reads a TOML config file named `.stylrc`. When `--config` is not specified, `styl` searches for `.stylrc` by walking up the directory tree from the style file's location.
 
 ## Example
 
@@ -16,12 +16,12 @@ indent = 4
 
 ## Auto-Discovery
 
-Starting from the directory containing the style file, `styl` walks up to the filesystem root looking for `.mapboxlintrc`. The first file found is used.
+Starting from the directory containing the style file, `styl` walks up to the filesystem root looking for `.stylrc`. The first file found is used.
 
 To use an explicit config path:
 
 ```bash
-styl check --config /path/to/.mapboxlintrc style.json
+styl check --config /path/to/.stylrc style.json
 ```
 
 ## `[rules]`
@@ -45,7 +45,7 @@ Valid values:
 
 Rule codes: `W001` through `W012`. See [Linter Rules](linter.md) for descriptions.
 
-When no `.mapboxlintrc` is present (or a rule has no override), all rules default to `"warn"`.
+When no `.stylrc` is present (or a rule has no override), all rules default to `"warn"`.
 
 ## `[format]`
 

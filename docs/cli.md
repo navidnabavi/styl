@@ -94,7 +94,7 @@ styl check style.json --format html > report.html
 
 ### `--config <PATH>`
 
-Explicit path to a `.mapboxlintrc` config file. When omitted, `styl` searches for `.mapboxlintrc` by walking up the directory tree from the style file's location.
+Explicit path to a `.stylrc` config file. When omitted, `styl` searches for `.stylrc` by walking up the directory tree from the style file's location.
 
 ### `--stdin`
 

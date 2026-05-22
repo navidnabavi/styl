@@ -47,7 +47,7 @@ Within `paint` and `layout` objects, properties are sorted **alphabetically**.
 
 ## Indentation
 
-Default indent is 2 spaces. Configure with [`format.indent`](config.md) in `.mapboxlintrc`.
+Default indent is 2 spaces. Configure with [`format.indent`](config.md) in `.stylrc`.
 
 ## Idempotency
 

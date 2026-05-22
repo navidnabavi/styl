@@ -2,7 +2,7 @@
 
 Linter rules enforce best practices that aren't spec violations. All rules use `W` codes and are emitted by `styl lint` and `styl check`.
 
-Rules can be configured via [`.mapboxlintrc`](config.md).
+Rules can be configured via [`.stylrc`](config.md).
 
 ---
 
@@ -202,7 +202,7 @@ Fix: set `heatmap-color` to an `interpolate` expression mapping density to a mea
 
 ## Configuring Rules
 
-Severity can be overridden per-rule in `.mapboxlintrc`:
+Severity can be overridden per-rule in `.stylrc`:
 
 ```toml
 [rules]

@@ -43,7 +43,7 @@ error[E003] sources.roads: vector source missing required field "url" or "tiles"
 | **Linter** | Best-practice warnings: duplicate IDs, invisible layers, legacy filters, perf anti-patterns (W-codes) |
 | **Formatter** | Canonical key ordering with `--check` mode for CI enforcement |
 | **Multiple output formats** | Human-readable, JSON (for tooling), GitHub Actions annotations |
-| **Config file** | Per-project `.mapboxlintrc` — per-rule severity overrides, indent settings |
+| **Config file** | Per-project `.stylrc` — per-rule severity overrides, indent settings |
 | **Stdin support** | `cat style.json \| styl check --stdin` — pipe-friendly |
 
 ---
@@ -120,7 +120,7 @@ styl fmt --check style.json && styl check style.json
 
 ## Configuration
 
-Drop a `.mapboxlintrc` at your project root:
+Drop a `.stylrc` at your project root:
 
 ```toml
 [rules]
@@ -145,7 +145,7 @@ indent = 4
 | [Linter Rules](docs/linter.md) | W-code best-practice warnings |
 | [Expressions](docs/expressions.md) | Supported expression operators |
 | [Formatter](docs/formatter.md) | Key ordering and `--check` mode |
-| [Configuration](docs/config.md) | `.mapboxlintrc` reference |
+| [Configuration](docs/config.md) | `.stylrc` reference |
 | [Layer Properties](docs/layer-properties.md) | Valid paint/layout props per layer type |
 
 ---

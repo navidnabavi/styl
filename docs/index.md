@@ -35,7 +35,7 @@ styl lint --spec mapbox style.json
 |------|---------|-------------|
 | `--spec maplibre\|mapbox` | `maplibre` | Style spec to validate against |
 | `--format human\|json\|github\|html` | `human` | Output format |
-| `--config <path>` | auto-discover | Path to `.mapboxlintrc` config file |
+| `--config <path>` | auto-discover | Path to `.stylrc` config file |
 | `--stdin` | — | Read style from stdin instead of a file |
 | `-q, --quiet` | — | Suppress output; use exit code only |
 
@@ -46,5 +46,5 @@ styl lint --spec mapbox style.json
 - [Linter Rules](linter.md) — W-code best-practice warnings
 - [Expressions](expressions.md) — supported expression operators
 - [Formatter](formatter.md) — canonical key ordering
-- [Configuration](config.md) — `.mapboxlintrc` config file
+- [Configuration](config.md) — `.stylrc` config file
 - [Layer Properties](layer-properties.md) — valid paint/layout props per layer type

@@ -11,7 +11,7 @@ pub enum RuleSeverity {
     Off,
 }
 
-/// Parsed .mapboxlintrc configuration
+/// Parsed .stylrc configuration
 #[derive(Debug, Clone, Deserialize, Default)]
 pub struct Config {
     /// Spec variant: "maplibre" or "mapbox"
@@ -43,12 +43,12 @@ impl Default for FormatConfig {
     }
 }
 
-/// Walk up the directory tree from `start` to find `.mapboxlintrc`.
+/// Walk up the directory tree from `start` to find `.stylrc`.
 /// Returns the path if found, None otherwise.
 pub fn discover_config(start: &Path) -> Option<PathBuf> {
     let mut current = start.to_path_buf();
     loop {
-        let candidate = current.join(".mapboxlintrc");
+        let candidate = current.join(".stylrc");
         if candidate.exists() {
             return Some(candidate);
         }
@@ -58,7 +58,7 @@ pub fn discover_config(start: &Path) -> Option<PathBuf> {
     }
 }
 
-/// Load and parse a `.mapboxlintrc` TOML file.
+/// Load and parse a `.stylrc` TOML file.
 pub fn load_config(path: &Path) -> Result<Config, String> {
     let content = std::fs::read_to_string(path)
         .map_err(|e| format!("cannot read config {}: {}", path.display(), e))?;
@@ -108,10 +108,10 @@ indent = 4
 
     #[test]
     fn test_discover_config_not_found() {
-        // Use a temp dir that won't have .mapboxlintrc
+        // Use a temp dir that won't have .stylrc
         let tmp = std::env::temp_dir().join("no-config-here-xyz");
         std::fs::create_dir_all(&tmp).ok();
-        // Should not find one (no .mapboxlintrc in /tmp or above on most systems)
+        // Should not find one (no .stylrc in /tmp or above on most systems)
         // Just check it doesn't panic
         let _ = discover_config(&tmp);
     }
@@ -119,7 +119,7 @@ indent = 4
     #[test]
     fn test_discover_config_finds_file() {
         let tmp = tempfile::tempdir().unwrap();
-        let config_path = tmp.path().join(".mapboxlintrc");
+        let config_path = tmp.path().join(".stylrc");
         std::fs::write(&config_path, r#"spec = "maplibre""#).unwrap();
         let sub = tmp.path().join("subdir");
         std::fs::create_dir_all(&sub).unwrap();
