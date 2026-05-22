@@ -48,11 +48,28 @@ error[E003] sources.roads: vector source missing required field "url" or "tiles"
 
 ## Installation
 
+### Homebrew (macOS / Linux)
+
+```bash
+brew tap navidnabavi/tap
+brew install styl
+```
+
+### One-line installer
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/navidnabavi/styl/main/install.sh | bash
+```
+
+Detects your OS and architecture, downloads the correct binary, installs to `/usr/local/bin`.
+
+### Cargo (requires Rust)
+
 ```bash
 cargo install --git https://github.com/navidnabavi/styl
 ```
 
-Or build from source:
+### Build from source
 
 ```bash
 git clone https://github.com/navidnabavi/styl
