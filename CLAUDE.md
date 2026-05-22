@@ -81,6 +81,23 @@ When fixing a known gap or adding a validator/linter rule, update the relevant d
 - Formatter key order change → `docs/formatter.md`
 - After fixing a gap → remove it from Known Gaps in both `CLAUDE.md` and `docs/validators.md`
 
+## Publishing
+
+- Homebrew tap: `github.com/navidnabavi/homebrew-tap` — formula at `Formula/styl.rb`
+- Release workflow generates per-binary `.sha256` files — use when updating formula SHA256s
+
+## Release Workflow
+
+1. Bump version in `Cargo.toml`
+2. `git tag vX.Y.Z && git push https vX.Y.Z` — triggers release CI
+3. CI uploads binaries + `.sha256` files to GitHub release
+4. Update `Formula/styl.rb` in `homebrew-tap` repo: bump `version`, fetch new SHA256 via `curl -fsSL <release-url>.sha256`
+
+## Assets
+
+- `assets/overview.svg` — project infographic, embedded in README
+- `install.sh` — cross-platform installer, auto-detects OS/arch, fetches latest release
+
 ## Spec references
 
 - MapLibre v8 (primary): https://maplibre.org/maplibre-style-spec/
