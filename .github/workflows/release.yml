@@ -93,15 +93,18 @@ jobs:
           VERSION="${GITHUB_REF_NAME}"
 
           if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
-            cp target/${{ matrix.target }}/release/styl.exe \
-              dist/styl-${VERSION}-${{ matrix.target }}.exe
+            BIN="dist/styl-${VERSION}-${{ matrix.target }}.exe"
+            cp target/${{ matrix.target }}/release/styl.exe "$BIN"
+            sha256sum "$BIN" > "${BIN}.sha256"
           else
-            cp target/${{ matrix.target }}/release/styl \
-              dist/styl-${VERSION}-${{ matrix.target }}
+            BIN="dist/styl-${VERSION}-${{ matrix.target }}"
+            cp target/${{ matrix.target }}/release/styl "$BIN"
+            sha256sum "$BIN" > "${BIN}.sha256"
           fi
 
       - name: Upload Release Assets
         uses: softprops/action-gh-release@v2
         with:
-          files: dist/*
+          files: |
+            dist/*
           body: ${{ needs.prepare.outputs.commits }}
