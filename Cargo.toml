@@ -2,6 +2,11 @@
 name = "styl"
 version = "0.0.1"
 edition = "2021"
+license = "MIT"
+description = "Linter, validator, and formatter for MapLibre GL / Mapbox GL style JSON"
+repository = "https://github.com/navidnabavi/styl"
+keywords = ["maplibre", "mapbox", "map", "style", "linter"]
+categories = ["command-line-utilities", "development-tools"]
 
 [lib]
 name = "styl"

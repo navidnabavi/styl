@@ -1,9 +1,24 @@
 # styl
 
-A fast, opinionated linter, validator, and formatter for **Mapbox GL** and **MapLibre GL** style JSON files.
+**Linter, validator, and formatter for MapLibre GL / Mapbox GL style JSON.**  
+Catch spec violations, enforce best practices, and keep style files consistent — in CI or locally.
+
+[![CI](https://github.com/navidnabavi/styl/actions/workflows/rust.yml/badge.svg)](https://github.com/navidnabavi/styl/actions/workflows/rust.yml)
+[![Rust](https://img.shields.io/badge/rust-2021_edition-orange.svg)](https://www.rust-lang.org)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![MapLibre Spec v8](https://img.shields.io/badge/MapLibre_spec-v8-green.svg)](https://maplibre.org/maplibre-style-spec/)
+
+---
+
+## Why styl?
+
+GL style JSON files grow fast. A single typo in a source reference silently breaks tiles. An invisible layer left in production wastes render time. Legacy filter syntax slips through code review unnoticed.
+
+`styl` is the `cargo clippy` for your map styles — runs in milliseconds, integrates with CI, and tells you exactly what is wrong and why.
 
 ```
 $ styl check style.json
+
 warning[W002] layers[9].layout.visibility: layer "Building" is permanently invisible
   --> style.json
   hint: remove the layer or set visibility to "visible" if it should be shown
@@ -11,29 +26,37 @@ warning[W002] layers[9].layout.visibility: layer "Building" is permanently invis
 warning[W011] layers[3].filter: layer "Landuse" uses deprecated legacy filter syntax
   --> style.json
   hint: migrate to expression-based filters: https://maplibre.org/maplibre-style-spec/expressions/
+
+error[E003] sources.roads: vector source missing required field "url" or "tiles"
+  --> style.json
 ```
 
 ---
 
 ## Features
 
-- **Validator** — catches spec violations (missing required fields, invalid property values, bad source references)
-- **Linter** — flags best-practice issues (duplicate IDs, invisible layers, legacy filter syntax, deep expressions, performance anti-patterns)
-- **Formatter** — rewrites style JSON with canonical key ordering; `--check` mode for CI enforcement
-- **Three output formats** — human-readable, JSON (for tooling), GitHub Actions annotations
-- **Config file** — per-project `.mapboxlintrc` with per-rule severity overrides and format settings
+| | |
+|---|---|
+| **Validator** | Spec violations: missing fields, invalid values, broken source refs (E-codes) |
+| **Linter** | Best-practice warnings: duplicate IDs, invisible layers, legacy filters, perf anti-patterns (W-codes) |
+| **Formatter** | Canonical key ordering with `--check` mode for CI enforcement |
+| **Multiple output formats** | Human-readable, JSON (for tooling), GitHub Actions annotations |
+| **Config file** | Per-project `.mapboxlintrc` — per-rule severity overrides, indent settings |
+| **Stdin support** | `cat style.json \| styl check --stdin` — pipe-friendly |
 
 ---
 
 ## Installation
 
 ```bash
-cargo install --path .
+cargo install --git https://github.com/navidnabavi/styl
 ```
 
-Or build locally:
+Or build from source:
 
 ```bash
+git clone https://github.com/navidnabavi/styl
+cd styl
 cargo build --release
 # binary at: target/release/styl
 ```
@@ -43,23 +66,84 @@ cargo build --release
 ## Usage
 
 ```bash
-styl check style.json            # validators + linter
-styl validate style.json         # spec violations only (E-codes)
-styl lint style.json             # best-practice warnings (W-codes)
-styl fmt style.json              # format in-place
-styl fmt --check style.json      # CI: exit 1 if formatting would change
-styl check --format json style.json   # machine-readable output
-styl check --format github style.json # GitHub Actions annotations
-cat style.json | styl check --stdin   # read from stdin
+styl check style.json                     # validate + lint (most common)
+styl validate style.json                  # spec violations only (E-codes)
+styl lint style.json                      # best-practice warnings only (W-codes)
+styl fmt style.json                       # format in-place
+styl fmt --check style.json               # CI: exit 1 if formatting would change
+styl check --format json style.json       # machine-readable output
+styl check --format github style.json     # GitHub Actions annotations
+cat style.json | styl check --stdin       # read from stdin
 ```
 
 ### Exit Codes
 
 | Code | Meaning |
 |------|---------|
-| `0` | No diagnostics |
-| `1` | Diagnostics found (any error or warning) |
+| `0` | Clean — no diagnostics |
+| `1` | Diagnostics found (errors or warnings) |
 | `2` | Tool error (bad JSON, I/O failure) |
+
+### CI Integration
+
+**GitHub Actions:**
+```yaml
+- name: Validate map styles
+  run: styl check --format github style.json
+```
+
+**Pre-commit hook:**
+```bash
+styl fmt --check style.json && styl check style.json
+```
+
+---
+
+## Configuration
+
+Drop a `.mapboxlintrc` at your project root:
+
+```toml
+[rules]
+W002 = "error"   # invisible layers → hard error
+W003 = "off"     # unused layers → silence
+W011 = "warn"    # legacy filters → warn (default)
+
+[format]
+indent = 4
+```
+
+`styl` walks up the directory tree to find it automatically.
+
+---
+
+## Diagnostics Reference
+
+### Validators (E-codes) — spec violations
+
+| Code | Description |
+|------|-------------|
+| E001 | Invalid or missing `version` (must be 8) |
+| E002 | Invalid `center`, `zoom`, `bearing`, or `pitch` value |
+| E003 | Source missing required `url` or `tiles` field |
+| E004 | Layer references non-existent source |
+| E005 | Vector layer missing `source-layer` |
+
+→ Full reference: [docs/validators.md](docs/validators.md)
+
+### Linter (W-codes) — best practices
+
+| Code | Description |
+|------|-------------|
+| W001 | Duplicate layer IDs |
+| W002 | Permanently invisible layer |
+| W003 | Layer not reachable (unused) |
+| W004 | Out-of-order stops in paint properties |
+| W005 | Z-order anomaly |
+| W006 | Expression depth > 10 |
+| W007–W012 | Performance hints |
+
+→ Full reference: [docs/linter.md](docs/linter.md)
 
 ---
 
@@ -70,26 +154,32 @@ cat style.json | styl check --stdin   # read from stdin
 | [CLI Reference](docs/cli.md) | All subcommands and flags |
 | [Validators](docs/validators.md) | E-code spec violations |
 | [Linter Rules](docs/linter.md) | W-code best-practice warnings |
-| [Expressions](docs/expressions.md) | All supported expression operators |
+| [Expressions](docs/expressions.md) | Supported expression operators |
 | [Formatter](docs/formatter.md) | Key ordering and `--check` mode |
 | [Configuration](docs/config.md) | `.mapboxlintrc` reference |
 | [Layer Properties](docs/layer-properties.md) | Valid paint/layout props per layer type |
 
 ---
 
-## Supported Spec
+## Supported Specs
 
 - **MapLibre GL Style Spec v8** (default) — [maplibre.org/maplibre-style-spec](https://maplibre.org/maplibre-style-spec/)
 - **Mapbox GL Style Spec v8** — pass `--spec mapbox`
 
 ---
 
-## Development
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md). New validators and linter rules are welcome — the architecture makes adding them straightforward.
 
 ```bash
-cargo build
-cargo test
-cargo clippy -- -D warnings
-cargo fmt --check
-cargo run -- check style.json
+cargo build && cargo test && cargo clippy -- -D warnings && cargo fmt --check
 ```
+
+All four must pass before opening a PR.
+
+---
+
+## License
+
+MIT
