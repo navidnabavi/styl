@@ -102,12 +102,9 @@
   <!-- github -->
   <rect x="229" y="390" width="70" height="18" rx="4" fill="#1f2937" stroke="#374151" stroke-width="1"/>
   <text x="264" y="403" font-family="'SF Mono', monospace" font-size="10" fill="#e6edf3" text-anchor="middle">github</text>
-  <!-- stdin -->
+  <!-- html -->
   <rect x="311" y="390" width="55" height="18" rx="4" fill="#1f2937" stroke="#374151" stroke-width="1"/>
-  <text x="338" y="403" font-family="'SF Mono', monospace" font-size="10" fill="#e6edf3" text-anchor="middle">stdin</text>
-  <!-- .mapboxlintrc -->
-  <rect x="378" y="390" width="100" height="18" rx="4" fill="#1f2937" stroke="#374151" stroke-width="1"/>
-  <text x="428" y="403" font-family="'SF Mono', monospace" font-size="10" fill="#e6edf3" text-anchor="middle">.mapboxlintrc</text>
+  <text x="338" y="403" font-family="'SF Mono', monospace" font-size="10" fill="#e6edf3" text-anchor="middle">html</text>
 
   <!-- Right side: exit codes + install -->
   <rect x="660" y="140" width="200" height="278" rx="10" fill="url(#cardGrad)" stroke="#30363d" stroke-width="1.5" filter="url(#shadow)"/>
@@ -131,7 +128,7 @@
 
   <text x="760" y="362" font-family="-apple-system, sans-serif" font-size="11" font-weight="600" fill="#8b949e" text-anchor="middle">SPECS</text>
   <text x="760" y="382" font-family="-apple-system, sans-serif" font-size="11" fill="#e6edf3" text-anchor="middle">MapLibre v8</text>
-  <text x="760" y="398" font-family="-apple-system, sans-serif" font-size="11" fill="#8b949e" text-anchor="middle">Mapbox v8</text>
+  <text x="760" y="398" font-family="-apple-system, sans-serif" font-size="11" fill="#e6edf3" text-anchor="middle">Mapbox v8</text>
 
   <!-- Bottom: GitHub link -->
   <text x="60" y="452" font-family="'SF Mono', monospace" font-size="11" fill="#3fb950">github.com/navidnabavi/styl</text>
