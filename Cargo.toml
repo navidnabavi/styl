@@ -2,6 +2,7 @@
 name = "styl"
 version = "0.0.3"
 edition = "2021"
+rust-version = "1.89"
 license = "MIT"
 description = "Linter, validator, and formatter for MapLibre GL / Mapbox GL style JSON"
 repository = "https://github.com/navidnabavi/styl"

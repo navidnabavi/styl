@@ -1,0 +1,69 @@
+name: Update Homebrew Formula
+
+on:
+  workflow_run:
+    workflows: [ "Release" ]
+    types: [ completed ]
+
+jobs:
+  update-formula:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get release version
+        id: version
+        run: |
+          VERSION="${{ github.event.workflow_run.head_branch }}"
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+
+      - name: Fetch SHA256 checksums
+        id: checksums
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          BASE="https://github.com/navidnabavi/styl/releases/download/${VERSION}"
+
+          SHA_MAC_ARM=$(curl -fsSL "${BASE}/styl-${VERSION}-aarch64-apple-darwin.sha256" | awk '{print $1}')
+          SHA_MAC_X86=$(curl -fsSL "${BASE}/styl-${VERSION}-x86_64-apple-darwin.sha256" | awk '{print $1}')
+          SHA_LIN_ARM=$(curl -fsSL "${BASE}/styl-${VERSION}-aarch64-unknown-linux-gnu.sha256" | awk '{print $1}')
+          SHA_LIN_X86=$(curl -fsSL "${BASE}/styl-${VERSION}-x86_64-unknown-linux-gnu.sha256" | awk '{print $1}')
+
+          echo "mac_arm=${SHA_MAC_ARM}" >> $GITHUB_OUTPUT
+          echo "mac_x86=${SHA_MAC_X86}" >> $GITHUB_OUTPUT
+          echo "lin_arm=${SHA_LIN_ARM}" >> $GITHUB_OUTPUT
+          echo "lin_x86=${SHA_LIN_X86}" >> $GITHUB_OUTPUT
+
+      - name: Checkout homebrew-tap
+        uses: actions/checkout@v4
+        with:
+          repository: navidnabavi/homebrew-tap
+          token: ${{ secrets.TAP_GITHUB_TOKEN }}
+          path: homebrew-tap
+
+      - name: Update formula
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+          SHA_MAC_ARM: ${{ steps.checksums.outputs.mac_arm }}
+          SHA_MAC_X86: ${{ steps.checksums.outputs.mac_x86 }}
+          SHA_LIN_ARM: ${{ steps.checksums.outputs.lin_arm }}
+          SHA_LIN_X86: ${{ steps.checksums.outputs.lin_x86 }}
+        run: |
+          VER="${VERSION#v}"  # strip leading 'v'
+          FORMULA="homebrew-tap/Formula/styl.rb"
+
+          sed -i "s/version \".*\"/version \"${VER}\"/" "$FORMULA"
+          sed -i "/aarch64-apple-darwin/{n;s/sha256 \".*\"/sha256 \"${SHA_MAC_ARM}\"/}" "$FORMULA"
+          sed -i "/x86_64-apple-darwin/{n;s/sha256 \".*\"/sha256 \"${SHA_MAC_X86}\"/}" "$FORMULA"
+          sed -i "/aarch64-unknown-linux-gnu/{n;s/sha256 \".*\"/sha256 \"${SHA_LIN_ARM}\"/}" "$FORMULA"
+          sed -i "/x86_64-unknown-linux-gnu/{n;s/sha256 \".*\"/sha256 \"${SHA_LIN_X86}\"/}" "$FORMULA"
+
+      - name: Commit and push
+        working-directory: homebrew-tap
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add Formula/styl.rb
+          git commit -m "feat(styl): update formula to ${VERSION}"
+          git push
