@@ -37,7 +37,7 @@ error[E003] sources.roads: vector source missing required field "url" or "tiles"
 
 ## Features
 
-| | |
+| Feature | Description |
 |---|---|
 | **Validator** | Spec violations: missing fields, invalid values, broken source refs (E-codes) |
 | **Linter** | Best-practice warnings: duplicate IDs, invisible layers, legacy filters, perf anti-patterns (W-codes) |
