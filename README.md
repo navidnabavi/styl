@@ -105,9 +105,22 @@ cat style.json | styl check --stdin       # read from stdin
 
 ### CI Integration
 
-**GitHub Actions:**
+**GitHub Actions (simple, always latest):**
 ```yaml
-- name: Validate map styles
+- name: Install styl
+  run: curl -fsSL https://raw.githubusercontent.com/navidnabavi/styl/main/install.sh | bash
+- name: Check styles
+  run: styl check --format github style.json
+```
+
+**GitHub Actions (pinned version + checksum — recommended for production):**
+```yaml
+- name: Install styl
+  run: |
+    curl -fsSL https://github.com/navidnabavi/styl/releases/download/v0.0.3/styl-v0.0.3-x86_64-unknown-linux-gnu -o styl
+    echo "5748131cb23f1d09e496587471e9252f7db984ce93832886a97ef9842c340156  styl" | sha256sum -c
+    chmod +x styl && sudo mv styl /usr/local/bin/
+- name: Check styles
   run: styl check --format github style.json
 ```
 
