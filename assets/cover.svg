@@ -1,0 +1,130 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 420" width="1000" height="420">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0d1117"/>
+      <stop offset="100%" style="stop-color:#161b22"/>
+    </linearGradient>
+    <linearGradient id="accentGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#2ea043"/>
+      <stop offset="100%" style="stop-color:#3fb950"/>
+    </linearGradient>
+    <linearGradient id="terminalGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#1c2128"/>
+      <stop offset="100%" style="stop-color:#161b22"/>
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
+      <feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="softglow">
+      <feGaussianBlur stdDeviation="40" result="coloredBlur"/>
+      <feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="shadow">
+      <feDropShadow dx="0" dy="4" stdDeviation="12" flood-color="#000000" flood-opacity="0.5"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1000" height="420" fill="url(#bg)"/>
+
+  <!-- Subtle grid -->
+  <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+    <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#21262d" stroke-width="0.5"/>
+  </pattern>
+  <rect width="1000" height="420" fill="url(#grid)" opacity="0.4"/>
+
+  <!-- Top accent bar -->
+  <rect x="0" y="0" width="1000" height="4" fill="url(#accentGrad)"/>
+
+  <!-- Left side: branding -->
+  <!-- Ambient glow -->
+  <ellipse cx="200" cy="210" rx="180" ry="120" fill="#2ea043" opacity="0.05" filter="url(#softglow)"/>
+
+  <!-- styl wordmark -->
+  <text x="60" y="178"
+    font-family="'SF Mono', 'Fira Code', monospace"
+    font-size="96"
+    font-weight="700"
+    fill="#e6edf3"
+    filter="url(#glow)"
+  >styl</text>
+
+  <!-- Green underline -->
+  <rect x="60" y="192" width="228" height="4" rx="2" fill="url(#accentGrad)"/>
+
+  <!-- Tagline -->
+  <text x="60" y="240"
+    font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
+    font-size="15"
+    fill="#8b949e"
+  >Linter · Validator · Formatter</text>
+
+  <text x="60" y="272"
+    font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
+    font-size="18"
+    font-weight="600"
+    fill="#e6edf3"
+  >for MapLibre GL / Mapbox GL</text>
+
+  <!-- Badges row -->
+  <rect x="60" y="310" width="78" height="22" rx="4" fill="#1c2128" stroke="#2ea043" stroke-width="1"/>
+  <text x="99" y="325" font-family="'SF Mono', monospace" font-size="10" fill="#3fb950" text-anchor="middle">CI-ready</text>
+
+  <rect x="148" y="310" width="68" height="22" rx="4" fill="#1c2128" stroke="#30363d" stroke-width="1"/>
+  <text x="182" y="325" font-family="'SF Mono', monospace" font-size="10" fill="#8b949e" text-anchor="middle">Rust CLI</text>
+
+  <rect x="226" y="310" width="78" height="22" rx="4" fill="#1c2128" stroke="#30363d" stroke-width="1"/>
+  <text x="265" y="325" font-family="'SF Mono', monospace" font-size="10" fill="#8b949e" text-anchor="middle">MIT license</text>
+
+  <!-- Divider -->
+  <line x1="380" y1="40" x2="380" y2="380" stroke="#21262d" stroke-width="1"/>
+
+  <!-- Right side: terminal window -->
+  <rect x="410" y="40" width="560" height="340" rx="12" fill="url(#terminalGrad)" stroke="#30363d" stroke-width="1.5" filter="url(#shadow)"/>
+
+  <!-- Terminal titlebar -->
+  <rect x="410" y="40" width="560" height="36" rx="12" fill="#1c2128"/>
+  <rect x="410" y="58" width="560" height="18" fill="#1c2128"/>
+
+  <!-- Traffic lights -->
+  <circle cx="438" cy="58" r="6" fill="#ff5f57"/>
+  <circle cx="458" cy="58" r="6" fill="#febc2e"/>
+  <circle cx="478" cy="58" r="6" fill="#28c840"/>
+
+  <!-- Terminal title -->
+  <text x="690" y="63" font-family="-apple-system, sans-serif" font-size="12" fill="#8b949e" text-anchor="middle">styl check style.json</text>
+
+  <!-- Terminal content -->
+  <!-- Prompt -->
+  <text x="438" y="108" font-family="'SF Mono', 'Fira Code', monospace" font-size="12.5" fill="#3fb950">$</text>
+  <text x="454" y="108" font-family="'SF Mono', 'Fira Code', monospace" font-size="12.5" fill="#e6edf3">styl check style.json</text>
+
+  <!-- Error -->
+  <text x="438" y="136" font-family="'SF Mono', 'Fira Code', monospace" font-size="12" fill="#f85149">error[E003]</text>
+  <text x="528" y="136" font-family="'SF Mono', 'Fira Code', monospace" font-size="12" fill="#8b949e">sources.roads: vector source missing</text>
+  <text x="454" y="152" font-family="'SF Mono', 'Fira Code', monospace" font-size="12" fill="#8b949e">required field "url" or "tiles"</text>
+  <text x="454" y="168" font-family="'SF Mono', 'Fira Code', monospace" font-size="12" fill="#30363d">  --> style.json</text>
+
+  <!-- Warning 1 -->
+  <text x="438" y="196" font-family="'SF Mono', 'Fira Code', monospace" font-size="12" fill="#e3b341">warning[W002]</text>
+  <text x="536" y="196" font-family="'SF Mono', 'Fira Code', monospace" font-size="12" fill="#8b949e">layer "Building" is permanently</text>
+  <text x="454" y="212" font-family="'SF Mono', 'Fira Code', monospace" font-size="12" fill="#8b949e">invisible</text>
+  <text x="454" y="228" font-family="'SF Mono', 'Fira Code', monospace" font-size="12" fill="#30363d">  --> style.json</text>
+  <text x="454" y="244" font-family="'SF Mono', 'Fira Code', monospace" font-size="12" fill="#8b949e">  hint: remove the layer or set</text>
+  <text x="454" y="260" font-family="'SF Mono', 'Fira Code', monospace" font-size="12" fill="#8b949e">  visibility to "visible"</text>
+
+  <!-- Warning 2 -->
+  <text x="438" y="288" font-family="'SF Mono', 'Fira Code', monospace" font-size="12" fill="#e3b341">warning[W011]</text>
+  <text x="536" y="288" font-family="'SF Mono', 'Fira Code', monospace" font-size="12" fill="#8b949e">layer "Landuse" uses deprecated</text>
+  <text x="454" y="304" font-family="'SF Mono', 'Fira Code', monospace" font-size="12" fill="#8b949e">legacy filter syntax</text>
+  <text x="454" y="320" font-family="'SF Mono', 'Fira Code', monospace" font-size="12" fill="#30363d">  --> style.json</text>
+
+  <!-- Summary line -->
+  <line x1="428" y1="340" x2="958" y2="340" stroke="#21262d" stroke-width="1"/>
+  <text x="438" y="360" font-family="'SF Mono', 'Fira Code', monospace" font-size="12" fill="#f85149">1 error</text>
+  <text x="490" y="360" font-family="'SF Mono', 'Fira Code', monospace" font-size="12" fill="#8b949e">,</text>
+  <text x="500" y="360" font-family="'SF Mono', 'Fira Code', monospace" font-size="12" fill="#e3b341">2 warnings</text>
+  <text x="590" y="360" font-family="'SF Mono', 'Fira Code', monospace" font-size="12" fill="#8b949e">— exit code 1</text>
+
+</svg>
