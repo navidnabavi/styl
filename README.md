@@ -114,11 +114,16 @@ cat style.json | styl check --stdin       # read from stdin
 ```
 
 **GitHub Actions (pinned version + checksum — recommended for production):**
+
+Replace `VERSION` and `SHA256` with values from the [latest release](https://github.com/navidnabavi/styl/releases/latest) — each release ships a `.sha256` file alongside the binary.
+
 ```yaml
 - name: Install styl
+  env:
+    VERSION: v0.0.3  # pin to a specific release
   run: |
-    curl -fsSL https://github.com/navidnabavi/styl/releases/download/v0.0.3/styl-v0.0.3-x86_64-unknown-linux-gnu -o styl
-    echo "5748131cb23f1d09e496587471e9252f7db984ce93832886a97ef9842c340156  styl" | sha256sum -c
+    curl -fsSL https://github.com/navidnabavi/styl/releases/download/${VERSION}/styl-${VERSION}-x86_64-unknown-linux-gnu -o styl
+    curl -fsSL https://github.com/navidnabavi/styl/releases/download/${VERSION}/styl-${VERSION}-x86_64-unknown-linux-gnu.sha256 | sha256sum -c
     chmod +x styl && sudo mv styl /usr/local/bin/
 - name: Check styles
   run: styl check --format github style.json

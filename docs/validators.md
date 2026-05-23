@@ -202,6 +202,22 @@ An expression must be a non-empty array. `[]` is not valid.
 
 ---
 
+## E021 — Invalid expression argument count
+
+An expression operator received the wrong number of arguments.
+
+- `"case"` requires pairs of `[condition, output]` plus a final fallback (minimum 4 args, even count)
+- `"match"` requires an input, at least one label-output pair, and a fallback (minimum 5 args)
+- Other operators (e.g. `"rgb"`, `"hsl"`, `"at"`, `"slice"`) enforce their own fixed or minimum arity
+
+```json
+["case", true, "red"]
+```
+
+→ `E021`: `"case"` requires pairs of [condition, output] plus a fallback
+
+---
+
 ## E022 — Unknown expression operator
 
 An expression's first element is not a recognized operator. See [Expressions](expressions.md) for all supported operators.

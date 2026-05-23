@@ -43,7 +43,7 @@ Valid values:
 | `"warn"` | Emit as warning (contributes to exit code 1) |
 | `"off"` | Suppress rule entirely |
 
-Rule codes: `W001` through `W012`. See [Linter Rules](linter.md) for descriptions.
+Rule codes: `W001` through `W018`. See [Linter Rules](linter.md) for descriptions.
 
 When no `.stylrc` is present (or a rule has no override), all rules default to `"warn"`.
 
