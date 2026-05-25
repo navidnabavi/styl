@@ -89,6 +89,64 @@ fn legacy_filters_triggers_w011() {
     );
 }
 
+#[test]
+fn test_lint_fix_removes_shadowed_color_and_sorts_stops() {
+    use std::fs;
+
+    let input = serde_json::json!({
+        "version": 8,
+        "sources": {},
+        "layers": [
+            {
+                "id": "bg",
+                "type": "background",
+                "paint": {
+                    "background-color": "#fff",
+                    "background-pattern": "dots",
+                    "background-opacity": {
+                        "stops": [[20, 1.0], [0, 0.0]]
+                    }
+                }
+            }
+        ]
+    });
+
+    let tmp = std::env::temp_dir().join("styl_fix_test.json");
+    fs::write(&tmp, serde_json::to_string_pretty(&input).unwrap()).unwrap();
+
+    let output = std::process::Command::new(env!("CARGO_BIN_EXE_styl"))
+        .args(["lint", "--fix", tmp.to_str().unwrap()])
+        .output()
+        .expect("failed to run styl");
+
+    // All issues were fixed → exit 0
+    assert_eq!(
+        output.status.code(),
+        Some(0),
+        "stderr: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    let fixed: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(&tmp).unwrap()).unwrap();
+
+    // W015 fix: background-color removed, pattern preserved
+    assert!(fixed["layers"][0]["paint"]
+        .get("background-color")
+        .is_none());
+    assert_eq!(
+        fixed["layers"][0]["paint"]["background-pattern"],
+        serde_json::json!("dots")
+    );
+
+    // W004 fix: stops sorted ascending
+    let stops = &fixed["layers"][0]["paint"]["background-opacity"]["stops"];
+    assert_eq!(stops[0][0], serde_json::json!(0));
+    assert_eq!(stops[1][0], serde_json::json!(20));
+
+    fs::remove_file(&tmp).unwrap();
+}
+
 mod spec_compat {
     use styl::{cli::Spec, diagnostic::Diagnostic, linter, style::Style, validator};
 
