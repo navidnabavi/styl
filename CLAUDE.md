@@ -12,6 +12,7 @@ cargo test validator::root         # specific module tests
 cargo run -- check style.json      # validate + lint a file
 cargo run -- validate style.json   # validators only (E-codes)
 cargo run -- lint style.json       # linter only (W-codes)
+cargo run -- lint --fix style.json    # autofix safe issues in-place (W004, W007, W015-W017)
 cargo run -- fmt style.json        # format in-place
 cargo run -- fmt --check style.json  # CI check (exit 1 if would change)
 cargo run -- check --format json style.json  # machine-readable output
@@ -58,7 +59,7 @@ Dual crate: `src/lib.rs` exposes the public API as `styl`; `src/main.rs` is the 
 
 `src/linter/mod.rs::run_all()` instantiates all 12 rules via `LintRule` trait.
 
-Rules in `src/linter/rules/`: `duplicate_ids` (W001), `visibility` (W002), `unused_layers` (W003), `stop_order` (W004), `z_order` (W005), `expression_depth` (W006), `perf_hints` (W007–W012).
+Rules in `src/linter/rules/`: `duplicate_ids` (W001), `visibility` (W002), `unused_layers` (W003), `stop_order` (W004), `z_order` (W005), `expression_depth` (W006), `perf_hints` (W007–W018).
 
 Config in `src/linter/config.rs` — TOML `.stylrc` auto-discovered by walking up the directory tree. Supports per-rule severity overrides (error/warn/off) and `format.indent`.
 
@@ -78,6 +79,7 @@ Requires `serde_json` `preserve_order` feature (in Cargo.toml) so `IndexMap`-bac
 When fixing a known gap or adding a validator/linter rule, update the relevant doc in `docs/`:
 - New E-code → `docs/validators.md` (add section, remove from Known Gaps)
 - New W-code → `docs/linter.md`
+- New autofix on a W-code → `docs/linter.md` (Autofix section)
 - Formatter key order change → `docs/formatter.md`
 - After fixing a gap → remove it from Known Gaps in both `CLAUDE.md` and `docs/validators.md`
 
