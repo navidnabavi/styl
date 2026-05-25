@@ -294,6 +294,24 @@ impl LintRule for BackgroundPatternOverridesColor {
         "W015"
     }
 
+    fn is_fixable(&self) -> bool {
+        true
+    }
+
+    fn fix(&self, value: &mut serde_json::Value) {
+        if let Some(layers) = value.get_mut("layers").and_then(|l| l.as_array_mut()) {
+            for layer in layers.iter_mut() {
+                if layer.get("type").and_then(|t| t.as_str()) == Some("background") {
+                    if let Some(paint) = layer.get_mut("paint").and_then(|p| p.as_object_mut()) {
+                        if paint.contains_key("background-pattern") {
+                            paint.remove("background-color");
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     fn check(&self, style: &Style) -> Vec<Diagnostic> {
         let mut diags = Vec::new();
         for (i, layer) in style.layers.iter().enumerate() {
@@ -329,6 +347,24 @@ impl LintRule for FillPatternOverridesColor {
         "W016"
     }
 
+    fn is_fixable(&self) -> bool {
+        true
+    }
+
+    fn fix(&self, value: &mut serde_json::Value) {
+        if let Some(layers) = value.get_mut("layers").and_then(|l| l.as_array_mut()) {
+            for layer in layers.iter_mut() {
+                if layer.get("type").and_then(|t| t.as_str()) == Some("fill") {
+                    if let Some(paint) = layer.get_mut("paint").and_then(|p| p.as_object_mut()) {
+                        if paint.contains_key("fill-pattern") {
+                            paint.remove("fill-color");
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     fn check(&self, style: &Style) -> Vec<Diagnostic> {
         let mut diags = Vec::new();
         for (i, layer) in style.layers.iter().enumerate() {
@@ -362,6 +398,24 @@ pub struct LinePatternOverridesColor;
 impl LintRule for LinePatternOverridesColor {
     fn code(&self) -> &'static str {
         "W017"
+    }
+
+    fn is_fixable(&self) -> bool {
+        true
+    }
+
+    fn fix(&self, value: &mut serde_json::Value) {
+        if let Some(layers) = value.get_mut("layers").and_then(|l| l.as_array_mut()) {
+            for layer in layers.iter_mut() {
+                if layer.get("type").and_then(|t| t.as_str()) == Some("line") {
+                    if let Some(paint) = layer.get_mut("paint").and_then(|p| p.as_object_mut()) {
+                        if paint.contains_key("line-pattern") {
+                            paint.remove("line-color");
+                        }
+                    }
+                }
+            }
+        }
     }
 
     fn check(&self, style: &Style) -> Vec<Diagnostic> {
@@ -688,5 +742,63 @@ mod tests {
     #[test]
     fn test_fix_empty_text_field_is_fixable() {
         assert!(EmptyTextField.is_fixable());
+    }
+
+    #[test]
+    fn test_fix_background_pattern_removes_color() {
+        let mut value = serde_json::json!({
+            "version": 8, "sources": {}, "layers": [{
+                "id": "bg", "type": "background",
+                "paint": { "background-color": "#fff", "background-pattern": "dots" }
+            }]
+        });
+        BackgroundPatternOverridesColor.fix(&mut value);
+        assert!(value["layers"][0]["paint"].get("background-color").is_none());
+        assert!(value["layers"][0]["paint"].get("background-pattern").is_some());
+    }
+
+    #[test]
+    fn test_fix_background_pattern_is_fixable() {
+        assert!(BackgroundPatternOverridesColor.is_fixable());
+    }
+
+    #[test]
+    fn test_fix_fill_pattern_removes_color() {
+        let mut value = serde_json::json!({
+            "version": 8,
+            "sources": { "s": { "type": "vector", "url": "mapbox://x" } },
+            "layers": [{
+                "id": "l", "type": "fill", "source": "s", "source-layer": "x",
+                "paint": { "fill-color": "#ff0", "fill-pattern": "dots" }
+            }]
+        });
+        FillPatternOverridesColor.fix(&mut value);
+        assert!(value["layers"][0]["paint"].get("fill-color").is_none());
+        assert!(value["layers"][0]["paint"].get("fill-pattern").is_some());
+    }
+
+    #[test]
+    fn test_fix_fill_pattern_is_fixable() {
+        assert!(FillPatternOverridesColor.is_fixable());
+    }
+
+    #[test]
+    fn test_fix_line_pattern_removes_color() {
+        let mut value = serde_json::json!({
+            "version": 8,
+            "sources": { "s": { "type": "vector", "url": "mapbox://x" } },
+            "layers": [{
+                "id": "l", "type": "line", "source": "s", "source-layer": "x",
+                "paint": { "line-color": "#ff0", "line-pattern": "dash" }
+            }]
+        });
+        LinePatternOverridesColor.fix(&mut value);
+        assert!(value["layers"][0]["paint"].get("line-color").is_none());
+        assert!(value["layers"][0]["paint"].get("line-pattern").is_some());
+    }
+
+    #[test]
+    fn test_fix_line_pattern_is_fixable() {
+        assert!(LinePatternOverridesColor.is_fixable());
     }
 }
