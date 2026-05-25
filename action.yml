@@ -1,0 +1,40 @@
+name: 'styl'
+description: 'Linter, validator, and formatter for MapLibre GL / Mapbox GL style JSON'
+author: 'Navid Nabavi'
+inputs:
+  command:
+    description: 'The styl command to run (check, validate, lint, fmt)'
+    required: false
+    default: 'check'
+  style_file:
+    description: 'Path to the style JSON file'
+    required: true
+  format:
+    description: 'Output format (github, human, json, html)'
+    required: false
+    default: 'github'
+  version:
+    description: 'The version of styl to use (e.g., v0.0.3). Defaults to the version of the action.'
+    required: false
+    default: ${{ github.action_ref }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Install styl
+      shell: bash
+      run: |
+        VERSION="${{ inputs.version }}"
+        if [[ "$VERSION" == "main" || "$VERSION" == "master" ]]; then
+          VERSION=""
+        fi
+        bash "${{ github.action_path }}/install.sh" "$VERSION"
+
+    - name: Run styl
+      shell: bash
+      run: |
+        if [ "${{ inputs.command }}" = "fmt" ]; then
+          styl fmt --check ${{ inputs.style_file }}
+        else
+          styl ${{ inputs.command }} --format ${{ inputs.format }} ${{ inputs.style_file }}
+        fi
