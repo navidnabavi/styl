@@ -214,3 +214,20 @@ W013 = "error"    # treat empty symbol layers as errors
 Valid values: `"error"`, `"warn"`, `"off"`.
 
 See [Configuration](config.md) for full details.
+
+---
+
+## Autofix
+
+Run `styl lint --fix <file>` to automatically apply safe, mechanical fixes:
+
+| Code | Fix Applied |
+|------|-------------|
+| W004 | Sort stop arrays into ascending order |
+| W007 | Remove empty `text-field` from layer layout |
+| W015 | Remove `background-color` when `background-pattern` is set |
+| W016 | Remove `fill-color` when `fill-pattern` is set |
+| W017 | Remove `line-color` when `line-pattern` is set |
+
+The file is rewritten in-place. Unfixed diagnostics (from rules with no autofix) are still reported.
+When reading from `--stdin`, the fixed JSON is written to stdout instead.
