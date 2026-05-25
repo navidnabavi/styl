@@ -11,6 +11,23 @@ impl LintRule for StopOrder {
         "W004"
     }
 
+    fn is_fixable(&self) -> bool {
+        true
+    }
+
+    fn fix(&self, value: &mut serde_json::Value) {
+        if let Some(layers) = value.get_mut("layers").and_then(|l| l.as_array_mut()) {
+            for layer in layers.iter_mut() {
+                if let Some(paint) = layer.get_mut("paint") {
+                    fix_value_stops(paint);
+                }
+                if let Some(layout) = layer.get_mut("layout") {
+                    fix_value_stops(layout);
+                }
+            }
+        }
+    }
+
     fn check(&self, style: &Style) -> Vec<Diagnostic> {
         let mut diags = Vec::new();
         for (i, layer) in style.layers.iter().enumerate() {
@@ -68,6 +85,39 @@ fn check_value_stops(value: &Value, path: &str, diags: &mut Vec<Diagnostic>) {
     }
 }
 
+fn fix_value_stops(value: &mut serde_json::Value) {
+    match value {
+        serde_json::Value::Object(obj) => {
+            for val in obj.values_mut() {
+                fix_value_stops(val);
+            }
+        }
+        serde_json::Value::Array(arr) => {
+            // Detect stops array: [[number, value], ...]
+            let is_stops = arr.len() >= 2
+                && arr.iter().all(|item| {
+                    item.is_array()
+                        && item
+                            .as_array()
+                            .map(|a| a.len() >= 2 && a[0].is_number())
+                            .unwrap_or(false)
+                });
+            if is_stops {
+                arr.sort_by(|a, b| {
+                    let fa = a[0].as_f64().unwrap_or(0.0);
+                    let fb = b[0].as_f64().unwrap_or(0.0);
+                    fa.partial_cmp(&fb).unwrap_or(std::cmp::Ordering::Equal)
+                });
+            } else {
+                for item in arr.iter_mut() {
+                    fix_value_stops(item);
+                }
+            }
+        }
+        _ => {}
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -101,5 +151,32 @@ mod tests {
         );
         let diags = StopOrder.check(&style);
         assert!(diags.iter().any(|d| d.code == "W004"));
+    }
+
+    #[test]
+    fn test_fix_stop_order() {
+        let mut value = serde_json::json!({
+            "version": 8,
+            "sources": {},
+            "layers": [{
+                "id": "bg",
+                "type": "background",
+                "paint": {
+                    "background-opacity": {
+                        "stops": [[20, 1.0], [10, 0.5], [0, 0.0]]
+                    }
+                }
+            }]
+        });
+        StopOrder.fix(&mut value);
+        let stops = &value["layers"][0]["paint"]["background-opacity"]["stops"];
+        assert_eq!(stops[0][0], serde_json::json!(0));
+        assert_eq!(stops[1][0], serde_json::json!(10));
+        assert_eq!(stops[2][0], serde_json::json!(20));
+    }
+
+    #[test]
+    fn test_fix_stop_order_is_fixable() {
+        assert!(StopOrder.is_fixable());
     }
 }

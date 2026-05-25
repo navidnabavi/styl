@@ -81,9 +81,15 @@ mod trait_tests {
 
     struct AlwaysFixable;
     impl LintRule for AlwaysFixable {
-        fn code(&self) -> &'static str { "W999" }
-        fn check(&self, _style: &Style) -> Vec<crate::diagnostic::Diagnostic> { vec![] }
-        fn is_fixable(&self) -> bool { true }
+        fn code(&self) -> &'static str {
+            "W999"
+        }
+        fn check(&self, _style: &Style) -> Vec<crate::diagnostic::Diagnostic> {
+            vec![]
+        }
+        fn is_fixable(&self) -> bool {
+            true
+        }
         fn fix(&self, value: &mut serde_json::Value) {
             value["__fixed"] = serde_json::json!(true);
         }
@@ -102,8 +108,12 @@ mod trait_tests {
     fn test_default_not_fixable() {
         struct NeverFix;
         impl LintRule for NeverFix {
-            fn code(&self) -> &'static str { "W998" }
-            fn check(&self, _style: &Style) -> Vec<crate::diagnostic::Diagnostic> { vec![] }
+            fn code(&self) -> &'static str {
+                "W998"
+            }
+            fn check(&self, _style: &Style) -> Vec<crate::diagnostic::Diagnostic> {
+                vec![]
+            }
         }
         let rule = NeverFix;
         assert!(!rule.is_fixable());
