@@ -753,8 +753,12 @@ mod tests {
             }]
         });
         BackgroundPatternOverridesColor.fix(&mut value);
-        assert!(value["layers"][0]["paint"].get("background-color").is_none());
-        assert!(value["layers"][0]["paint"].get("background-pattern").is_some());
+        assert!(value["layers"][0]["paint"]
+            .get("background-color")
+            .is_none());
+        assert!(value["layers"][0]["paint"]
+            .get("background-pattern")
+            .is_some());
     }
 
     #[test]

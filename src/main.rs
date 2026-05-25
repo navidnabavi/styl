@@ -69,11 +69,21 @@ fn run(cli: &Cli) -> i32 {
             };
             let diags = linter::run_all(&style, &cli.spec);
             if *fix {
-                if let Err(code) = apply_fixes(&mut value, cli, &config) {
+                if let Err(code) = apply_fixes(&mut value, cli, &config, &diags) {
                     return code;
                 }
+                // Re-lint after fixes to get remaining diagnostics for exit code
+                let fixed_style: Style = match serde_json::from_value(value.clone()) {
+                    Ok(s) => s,
+                    Err(e) => {
+                        eprintln!("error: style parse after fix failed: {}", e);
+                        return 2;
+                    }
+                };
+                linter::run_all(&fixed_style, &cli.spec)
+            } else {
+                diags
             }
-            diags
         }
         Command::Fmt { check, .. } => {
             let formatted = formatter::format_style(&value, config.format.indent);
@@ -147,11 +157,21 @@ fn apply_fixes(
     value: &mut serde_json::Value,
     cli: &Cli,
     config: &Config,
-) -> Result<Vec<&'static str>, i32> {
+    diags: &[diagnostic::Diagnostic],
+) -> Result<(), i32> {
     let fixed_codes = linter::run_fixes(value, &cli.spec);
-    if !fixed_codes.is_empty() && !cli.quiet {
-        let codes = fixed_codes.join(", ");
-        eprintln!("fixed {} issue(s) ({})", fixed_codes.len(), codes);
+    // Only report codes that had actual diagnostics
+    let reported: Vec<&str> = fixed_codes
+        .iter()
+        .copied()
+        .filter(|code| diags.iter().any(|d| d.code == *code))
+        .collect();
+    if !reported.is_empty() && !cli.quiet {
+        eprintln!(
+            "fixed {} issue(s) ({})",
+            reported.len(),
+            reported.join(", ")
+        );
     }
     let formatted = formatter::format_style(value, config.format.indent);
     if let Some(path) = get_file_path(cli) {
@@ -162,7 +182,7 @@ fn apply_fixes(
     } else {
         print!("{}", formatted);
     }
-    Ok(fixed_codes)
+    Ok(())
 }
 
 fn load_effective_config(cli: &Cli) -> Config {
