@@ -10,6 +10,22 @@ impl LintRule for EmptyTextField {
         "W007"
     }
 
+    fn is_fixable(&self) -> bool {
+        true
+    }
+
+    fn fix(&self, value: &mut serde_json::Value) {
+        if let Some(layers) = value.get_mut("layers").and_then(|l| l.as_array_mut()) {
+            for layer in layers.iter_mut() {
+                if let Some(layout) = layer.get_mut("layout").and_then(|l| l.as_object_mut()) {
+                    if layout.get("text-field").and_then(|v| v.as_str()) == Some("") {
+                        layout.remove("text-field");
+                    }
+                }
+            }
+        }
+    }
+
     fn check(&self, style: &Style) -> Vec<Diagnostic> {
         let mut diags = Vec::new();
         for (i, layer) in style.layers.iter().enumerate() {
@@ -649,5 +665,28 @@ mod tests {
             r#"{"version":8,"sources":{"s":{"type":"vector","url":"mapbox://x"}},"layers":[{"id":"h","type":"heatmap","source":"s","source-layer":"x","paint":{"heatmap-color":["interpolate",["linear"],["heatmap-density"],0,"transparent",1,"red"]}}]}"#,
         );
         assert!(HeatmapMissingColor.check(&style).is_empty());
+    }
+
+    #[test]
+    fn test_fix_empty_text_field() {
+        let mut value = serde_json::json!({
+            "version": 8,
+            "sources": {},
+            "layers": [
+                {
+                    "id": "s",
+                    "type": "symbol",
+                    "source": "x",
+                    "layout": { "text-field": "" }
+                }
+            ]
+        });
+        EmptyTextField.fix(&mut value);
+        assert!(value["layers"][0]["layout"].get("text-field").is_none());
+    }
+
+    #[test]
+    fn test_fix_empty_text_field_is_fixable() {
+        assert!(EmptyTextField.is_fixable());
     }
 }
