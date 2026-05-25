@@ -43,7 +43,12 @@ pub enum Command {
         check: bool,
     },
     /// Run only lint rules
-    Lint { file: Option<PathBuf> },
+    Lint {
+        file: Option<PathBuf>,
+        /// Automatically fix safe, mechanical issues in-place
+        #[arg(long)]
+        fix: bool,
+    },
     /// Run only spec validation
     Validate { file: Option<PathBuf> },
 }

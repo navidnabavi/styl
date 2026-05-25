@@ -28,7 +28,7 @@ fn run(cli: &Cli) -> i32 {
     };
 
     // Parse JSON
-    let value: serde_json::Value = match serde_json::from_str(&content) {
+    let mut value: serde_json::Value = match serde_json::from_str(&content) {
         Ok(v) => v,
         Err(e) => {
             eprintln!("error: invalid JSON: {}", e);
@@ -59,7 +59,7 @@ fn run(cli: &Cli) -> i32 {
             };
             validator::run_all(&style, &cli.spec)
         }
-        Command::Lint { .. } => {
+        Command::Lint { fix, .. } => {
             let style: Style = match serde_json::from_value(value.clone()) {
                 Ok(s) => s,
                 Err(e) => {
@@ -67,7 +67,13 @@ fn run(cli: &Cli) -> i32 {
                     return 2;
                 }
             };
-            linter::run_all(&style, &cli.spec)
+            let diags = linter::run_all(&style, &cli.spec);
+            if *fix {
+                if let Err(code) = apply_fixes(&mut value, cli, &config) {
+                    return code;
+                }
+            }
+            diags
         }
         Command::Fmt { check, .. } => {
             let formatted = formatter::format_style(&value, config.format.indent);
@@ -132,9 +138,31 @@ fn get_file_path(cli: &Cli) -> Option<&std::path::PathBuf> {
     match &cli.command {
         Command::Check { file } => file.as_ref(),
         Command::Fmt { file, .. } => file.as_ref(),
-        Command::Lint { file } => file.as_ref(),
+        Command::Lint { file, .. } => file.as_ref(),
         Command::Validate { file } => file.as_ref(),
     }
+}
+
+fn apply_fixes(
+    value: &mut serde_json::Value,
+    cli: &Cli,
+    config: &Config,
+) -> Result<Vec<&'static str>, i32> {
+    let fixed_codes = linter::run_fixes(value, &cli.spec);
+    if !fixed_codes.is_empty() && !cli.quiet {
+        let codes = fixed_codes.join(", ");
+        eprintln!("fixed {} issue(s) ({})", fixed_codes.len(), codes);
+    }
+    let formatted = formatter::format_style(value, config.format.indent);
+    if let Some(path) = get_file_path(cli) {
+        std::fs::write(path, &formatted).map_err(|e| {
+            eprintln!("error: {}", e);
+            2i32
+        })?;
+    } else {
+        print!("{}", formatted);
+    }
+    Ok(fixed_codes)
 }
 
 fn load_effective_config(cli: &Cli) -> Config {
