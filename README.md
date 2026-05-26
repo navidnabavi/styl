@@ -105,29 +105,25 @@ cat style.json | styl check --stdin       # read from stdin
 
 ### CI Integration
 
-**GitHub Actions (simple, always latest):**
-```yaml
-- name: Install styl
-  run: curl -fsSL https://raw.githubusercontent.com/navidnabavi/styl/main/install.sh | bash
-- name: Check styles
-  run: styl check --format github style.json
-```
-
-**GitHub Actions (pinned version + checksum — recommended for production):**
-
-Replace `VERSION` and `SHA256` with values from the [latest release](https://github.com/navidnabavi/styl/releases/latest) — each release ships a `.sha256` file alongside the binary.
+**GitHub Action (Recommended):**
 
 ```yaml
-- name: Install styl
-  env:
-    VERSION: v0.0.3  # pin to a specific release
-  run: |
-    curl -fsSL https://github.com/navidnabavi/styl/releases/download/${VERSION}/styl-${VERSION}-x86_64-unknown-linux-gnu -o styl
-    curl -fsSL https://github.com/navidnabavi/styl/releases/download/${VERSION}/styl-${VERSION}-x86_64-unknown-linux-gnu.sha256 | sha256sum -c
-    chmod +x styl && sudo mv styl /usr/local/bin/
-- name: Check styles
-  run: styl check --format github style.json
+- uses: navidnabavi/styl@v0.0.4
+  with:
+    style_file: style.json
 ```
+
+**Advanced usage:**
+
+```yaml
+- uses: navidnabavi/styl@latest
+  with:
+    style_file: style.json
+    command: check       # check (default), validate, lint, fmt
+    format: github       # github (default), human, json, html
+    version: v0.0.4      # pin styl version (optional)
+```
+
 
 **Pre-commit hook:**
 ```bash

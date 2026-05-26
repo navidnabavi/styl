@@ -30,8 +30,11 @@ case "$OS" in
     ;;
 esac
 
-# Get latest version tag
-VERSION="$(curl -fsSL "https://api.github.com/repos/${REPO}/releases/latest" | grep '"tag_name"' | sed -E 's/.*"tag_name": *"([^"]+)".*/\1/')"
+# Get version (default to latest if not provided)
+VERSION="${1:-}"
+if [ -z "$VERSION" ]; then
+  VERSION="$(curl -fsSL "https://api.github.com/repos/${REPO}/releases/latest" | grep '"tag_name"' | sed -E 's/.*"tag_name": *"([^"]+)".*/\1/')"
+fi
 
 if [ -z "$VERSION" ]; then
   echo "Failed to fetch latest version" >&2
