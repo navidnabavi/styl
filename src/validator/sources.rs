@@ -177,6 +177,15 @@ fn validate_raster(s: &RasterSource, path: &str) -> Vec<Diagnostic> {
             .with_hint("add a \"url\" (TileJSON endpoint) or \"tiles\" array"),
         );
     }
+    if let Some(tiles) = &s.tiles {
+        if tiles.is_empty() {
+            diags.push(Diagnostic::error(
+                "E010",
+                format!("{}.tiles", path),
+                "\"tiles\" array must not be empty",
+            ));
+        }
+    }
     if let Some(scheme) = &s.scheme {
         if scheme != "xyz" && scheme != "tms" {
             diags.push(
@@ -304,6 +313,16 @@ mod tests {
         let style = parse(r#"{"version":8,"sources":{"s":{"type":"raster"}},"layers":[]}"#);
         let diags = validate_sources(&style);
         assert!(diags.iter().any(|d| d.code == "E010"));
+    }
+
+    #[test]
+    fn test_raster_source_empty_tiles() {
+        let style =
+            parse(r#"{"version":8,"sources":{"s":{"type":"raster","tiles":[]}},"layers":[]}"#);
+        let diags = validate_sources(&style);
+        assert!(diags
+            .iter()
+            .any(|d| d.code == "E010" && d.path.contains("tiles")));
     }
 
     #[test]

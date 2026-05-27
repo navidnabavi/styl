@@ -48,11 +48,11 @@ fn valid_complex_has_no_errors() {
 }
 
 #[test]
-fn invalid_missing_source_has_e003() {
+fn invalid_missing_source_has_e009() {
     let diags = check_fixture("invalid_missing_source.json");
     assert!(
-        diags.iter().any(|d| d.code == "E003"),
-        "expected E003 in invalid_missing_source.json"
+        diags.iter().any(|d| d.code == "E009"),
+        "expected E009 in invalid_missing_source.json"
     );
 }
 

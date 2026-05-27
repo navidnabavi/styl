@@ -39,9 +39,7 @@ Out-of-range values on root properties:
 
 ---
 
-## E003 — Layer source not found
-
-> Note: Two distinct checks share the E003 code — one on the root `glyphs` field (above), one on layer `source` references (below).
+## E009 — Layer source not found
 
 A layer references a `source` ID that doesn't exist in the top-level `sources` map.
 
@@ -151,7 +149,7 @@ Source `scheme` must be `"xyz"` or `"tms"`. Applies to vector and raster sources
 
 ## E013 — Invalid source zoom range
 
-Source `minzoom`/`maxzoom` must be in `[0, 22]`. `minzoom` must be ≤ `maxzoom`. Applies to vector, raster, raster-dem, and geojson sources.
+Source `minzoom`/`maxzoom` must be in `[0, 22]`. `minzoom` must be ≤ `maxzoom`. Applies to vector, raster, and raster-dem sources. GeoJSON sources only support `maxzoom`.
 
 ```json
 { "type": "vector", "url": "...", "minzoom": 25 }

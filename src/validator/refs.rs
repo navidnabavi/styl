@@ -20,7 +20,7 @@ pub fn validate_refs(style: &Style) -> Vec<Diagnostic> {
             if !style.sources.contains_key(source_id) {
                 diags.push(
                     Diagnostic::error(
-                        "E003",
+                        "E009",
                         format!("{}.source", path),
                         format!("source \"{}\" is not defined in sources", source_id),
                     )
@@ -91,7 +91,7 @@ mod tests {
         }"#,
         );
         let diags = validate_refs(&style);
-        assert!(diags.iter().any(|d| d.code == "E003"));
+        assert!(diags.iter().any(|d| d.code == "E009"));
     }
 
     #[test]
@@ -104,7 +104,7 @@ mod tests {
         }"#,
         );
         let diags = validate_refs(&style);
-        assert!(!diags.iter().any(|d| d.code == "E003"));
+        assert!(!diags.iter().any(|d| d.code == "E009"));
     }
 
     #[test]
