@@ -225,6 +225,8 @@ Run `styl lint --fix <file>` to automatically apply safe, mechanical fixes:
 |------|-------------|
 | W004 | Sort stop arrays into ascending order |
 | W007 | Remove empty `text-field` from layer layout |
+| W010 | Remove zero-length segments from `line-dasharray` |
+| W011 | Migrate legacy filter to equivalent expression syntax |
 | W015 | Remove `background-color` when `background-pattern` is set |
 | W016 | Remove `fill-color` when `fill-pattern` is set |
 | W017 | Remove `line-color` when `line-pattern` is set |

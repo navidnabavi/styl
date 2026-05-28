@@ -1,6 +1,10 @@
 use crate::diagnostic::Diagnostic;
 use crate::linter::LintRule;
-use crate::style::{expression::is_legacy_filter, layer::LayerType, Style};
+use crate::style::{
+    expression::{is_legacy_filter, migrate_legacy_filter},
+    layer::LayerType,
+    Style,
+};
 
 /// W007: text-field is empty string
 pub struct EmptyTextField;
@@ -125,6 +129,29 @@ impl LintRule for ZeroDasharray {
         "W010"
     }
 
+    fn is_fixable(&self) -> bool {
+        true
+    }
+
+    fn fix(&self, value: &mut serde_json::Value) {
+        if let Some(layers) = value.get_mut("layers").and_then(|l| l.as_array_mut()) {
+            for layer in layers.iter_mut() {
+                if let Some(paint) = layer.get_mut("paint").and_then(|p| p.as_object_mut()) {
+                    if let Some(da) = paint.get_mut("line-dasharray") {
+                        if let Some(arr) = da.as_array() {
+                            let filtered: Vec<serde_json::Value> = arr
+                                .iter()
+                                .filter(|v| v.as_f64().map(|n| n > 0.0).unwrap_or(true))
+                                .cloned()
+                                .collect();
+                            *da = serde_json::Value::Array(filtered);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     fn check(&self, style: &Style) -> Vec<Diagnostic> {
         let mut diags = Vec::new();
         for (i, layer) in style.layers.iter().enumerate() {
@@ -155,6 +182,22 @@ pub struct LegacyFilter;
 impl LintRule for LegacyFilter {
     fn code(&self) -> &'static str {
         "W011"
+    }
+
+    fn is_fixable(&self) -> bool {
+        true
+    }
+
+    fn fix(&self, value: &mut serde_json::Value) {
+        if let Some(layers) = value.get_mut("layers").and_then(|l| l.as_array_mut()) {
+            for layer in layers.iter_mut() {
+                if let Some(filter) = layer.get("filter").cloned() {
+                    if is_legacy_filter(&filter) {
+                        layer["filter"] = migrate_legacy_filter(&filter);
+                    }
+                }
+            }
+        }
     }
 
     fn check(&self, style: &Style) -> Vec<Diagnostic> {
@@ -719,6 +762,122 @@ mod tests {
             r#"{"version":8,"sources":{"s":{"type":"vector","url":"mapbox://x"}},"layers":[{"id":"h","type":"heatmap","source":"s","source-layer":"x","paint":{"heatmap-color":["interpolate",["linear"],["heatmap-density"],0,"transparent",1,"red"]}}]}"#,
         );
         assert!(HeatmapMissingColor.check(&style).is_empty());
+    }
+
+    #[test]
+    fn test_fix_zero_dasharray_removes_zeros() {
+        let mut value = serde_json::json!({
+            "version": 8,
+            "sources": {},
+            "layers": [{
+                "id": "l", "type": "line", "source": "s",
+                "paint": { "line-dasharray": [2, 0, 2] }
+            }]
+        });
+        ZeroDasharray.fix(&mut value);
+        let da = value["layers"][0]["paint"]["line-dasharray"]
+            .as_array()
+            .unwrap();
+        assert_eq!(da.len(), 2);
+        assert!(da.iter().all(|v| v.as_f64().unwrap() > 0.0));
+    }
+
+    #[test]
+    fn test_fix_zero_dasharray_is_fixable() {
+        assert!(ZeroDasharray.is_fixable());
+    }
+
+    #[test]
+    fn test_fix_legacy_filter_comparison() {
+        let mut value = serde_json::json!({
+            "version": 8,
+            "sources": {},
+            "layers": [{
+                "id": "l", "type": "fill", "source": "s",
+                "filter": ["==", "class", "road"]
+            }]
+        });
+        LegacyFilter.fix(&mut value);
+        let filter = &value["layers"][0]["filter"];
+        assert_eq!(filter[0], "==");
+        assert_eq!(filter[1][0], "get");
+        assert_eq!(filter[1][1], "class");
+        assert_eq!(filter[2], "road");
+    }
+
+    #[test]
+    fn test_fix_legacy_filter_in_operator() {
+        let mut value = serde_json::json!({
+            "version": 8,
+            "sources": {},
+            "layers": [{
+                "id": "l", "type": "fill", "source": "s",
+                "filter": ["in", "class", "motorway", "primary"]
+            }]
+        });
+        LegacyFilter.fix(&mut value);
+        let filter = &value["layers"][0]["filter"];
+        assert_eq!(filter[0], "match");
+        assert_eq!(filter[1][0], "get");
+        assert_eq!(filter[1][1], "class");
+        assert_eq!(filter[3], true);
+        assert_eq!(filter[4], false);
+    }
+
+    #[test]
+    fn test_fix_legacy_filter_not_in_operator() {
+        let mut value = serde_json::json!({
+            "version": 8,
+            "sources": {},
+            "layers": [{
+                "id": "l", "type": "fill", "source": "s",
+                "filter": ["!in", "class", "motorway"]
+            }]
+        });
+        LegacyFilter.fix(&mut value);
+        let filter = &value["layers"][0]["filter"];
+        assert_eq!(filter[0], "match");
+        assert_eq!(filter[3], false);
+        assert_eq!(filter[4], true);
+    }
+
+    #[test]
+    fn test_fix_legacy_filter_none_operator() {
+        let mut value = serde_json::json!({
+            "version": 8,
+            "sources": {},
+            "layers": [{
+                "id": "l", "type": "fill", "source": "s",
+                "filter": ["none", ["==", "class", "road"]]
+            }]
+        });
+        LegacyFilter.fix(&mut value);
+        let filter = &value["layers"][0]["filter"];
+        assert_eq!(filter[0], "all");
+        assert_eq!(filter[1][0], "!");
+    }
+
+    #[test]
+    fn test_fix_legacy_filter_all_recursive() {
+        let mut value = serde_json::json!({
+            "version": 8,
+            "sources": {},
+            "layers": [{
+                "id": "l", "type": "fill", "source": "s",
+                "filter": ["all", ["==", "class", "road"], ["==", "type", "primary"]]
+            }]
+        });
+        LegacyFilter.fix(&mut value);
+        let filter = &value["layers"][0]["filter"];
+        assert_eq!(filter[0], "all");
+        assert_eq!(filter[1][0], "==");
+        assert_eq!(filter[1][1][0], "get");
+        assert_eq!(filter[2][1][0], "get");
+    }
+
+    #[test]
+    fn test_fix_legacy_filter_is_fixable() {
+        assert!(LegacyFilter.is_fixable());
     }
 
     #[test]

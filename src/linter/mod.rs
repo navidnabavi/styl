@@ -58,6 +58,8 @@ pub fn run_fixes(value: &mut serde_json::Value, spec: &crate::cli::Spec) -> Vec<
     let rules: Vec<Box<dyn LintRule>> = vec![
         Box::new(rules::stop_order::StopOrder),
         Box::new(rules::perf_hints::EmptyTextField),
+        Box::new(rules::perf_hints::ZeroDasharray),
+        Box::new(rules::perf_hints::LegacyFilter),
         Box::new(rules::perf_hints::BackgroundPatternOverridesColor),
         Box::new(rules::perf_hints::FillPatternOverridesColor),
         Box::new(rules::perf_hints::LinePatternOverridesColor),

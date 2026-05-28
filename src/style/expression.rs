@@ -497,6 +497,73 @@ pub fn is_legacy_filter(value: &Value) -> bool {
     false
 }
 
+/// Migrate a legacy filter to its equivalent modern expression.
+///
+/// Handles all legacy operators:
+/// - `["=="|"!="|"<"|"<="|">"|">=", "key", value]` → wraps key in `["get", "key"]`
+/// - `["has", "key"]` → unchanged (already valid as expression)
+/// - `["!has", "key"]` → `["!", ["has", "key"]]`
+/// - `["in", "key", v1, ...]` → `["match", ["get", "key"], [v1, ...], true, false]`
+/// - `["!in", "key", v1, ...]` → `["match", ["get", "key"], [v1, ...], false, true]`
+/// - `["none", f1, f2, ...]` → `["all", ["!", f1], ["!", f2], ...]`
+/// - `["all"|"any", f1, ...]` → recursively migrates sub-filters
+pub fn migrate_legacy_filter(value: &Value) -> Value {
+    use serde_json::json;
+    if let Some(arr) = value.as_array() {
+        if let Some(op) = arr.first().and_then(|v| v.as_str()) {
+            match op {
+                "==" | "!=" | "<" | "<=" | ">" | ">=" => {
+                    if arr.len() >= 3 && arr[1].is_string() {
+                        let key = arr[1].clone();
+                        let val = arr[2].clone();
+                        return json!([op, ["get", key], val]);
+                    }
+                }
+                "has" => {
+                    // ["has", "key"] is already valid in expression syntax
+                    return value.clone();
+                }
+                "!has" => {
+                    if arr.len() >= 2 {
+                        let key = arr[1].clone();
+                        return json!(["!", ["has", key]]);
+                    }
+                }
+                "in" => {
+                    if arr.len() >= 2 && arr[1].is_string() {
+                        let key = arr[1].clone();
+                        let values: Vec<Value> = arr[2..].to_vec();
+                        return json!(["match", ["get", key], values, true, false]);
+                    }
+                }
+                "!in" => {
+                    if arr.len() >= 2 && arr[1].is_string() {
+                        let key = arr[1].clone();
+                        let values: Vec<Value> = arr[2..].to_vec();
+                        return json!(["match", ["get", key], values, false, true]);
+                    }
+                }
+                "none" => {
+                    let mut result = vec![json!("all")];
+                    result.extend(
+                        arr[1..]
+                            .iter()
+                            .map(|f| json!(["!", migrate_legacy_filter(f)])),
+                    );
+                    return Value::Array(result);
+                }
+                "all" | "any" => {
+                    let mut result = vec![json!(op)];
+                    result.extend(arr[1..].iter().map(migrate_legacy_filter));
+                    return Value::Array(result);
+                }
+                _ => {}
+            }
+        }
+    }
+    value.clone()
+}
+
 fn is_unambiguously_legacy_filter(value: &Value) -> bool {
     if let Some(arr) = value.as_array() {
         if let Some(first) = arr.first() {
