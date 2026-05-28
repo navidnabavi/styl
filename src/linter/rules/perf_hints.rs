@@ -488,6 +488,40 @@ impl LintRule for LinePatternOverridesColor {
     }
 }
 
+/// W019: Style has symbol layers with text-field but no glyphs URL
+pub struct MissingGlyphs;
+
+impl LintRule for MissingGlyphs {
+    fn code(&self) -> &'static str {
+        "W019"
+    }
+
+    fn check(&self, style: &Style) -> Vec<Diagnostic> {
+        if style.glyphs.is_some() {
+            return vec![];
+        }
+        let has_text = style.layers.iter().any(|l| {
+            l.layer_type == Some(LayerType::Symbol)
+                && l.layout
+                    .as_ref()
+                    .and_then(|layout| layout.get("text-field"))
+                    .is_some()
+        });
+        if has_text {
+            vec![Diagnostic::warning(
+                "W019",
+                "glyphs",
+                "style has symbol layers with text-field but no glyphs URL is defined",
+            )
+            .with_hint(
+                "add a \"glyphs\" URL template containing {fontstack} and {range} placeholders",
+            )]
+        } else {
+            vec![]
+        }
+    }
+}
+
 /// W018: Heatmap layer missing heatmap-color expression (renders monochrome)
 pub struct HeatmapMissingColor;
 
@@ -762,6 +796,30 @@ mod tests {
             r#"{"version":8,"sources":{"s":{"type":"vector","url":"mapbox://x"}},"layers":[{"id":"h","type":"heatmap","source":"s","source-layer":"x","paint":{"heatmap-color":["interpolate",["linear"],["heatmap-density"],0,"transparent",1,"red"]}}]}"#,
         );
         assert!(HeatmapMissingColor.check(&style).is_empty());
+    }
+
+    #[test]
+    fn test_missing_glyphs_with_text_field_w019() {
+        let style = parse(
+            r#"{"version":8,"sources":{"s":{"type":"vector","url":"mapbox://x"}},"layers":[{"id":"l","type":"symbol","source":"s","source-layer":"x","layout":{"text-field":["get","name"]}}]}"#,
+        );
+        assert!(MissingGlyphs.check(&style).iter().any(|d| d.code == "W019"));
+    }
+
+    #[test]
+    fn test_missing_glyphs_no_text_field_ok() {
+        let style = parse(
+            r#"{"version":8,"sources":{"s":{"type":"vector","url":"mapbox://x"}},"layers":[{"id":"l","type":"symbol","source":"s","source-layer":"x","layout":{"icon-image":"marker"}}]}"#,
+        );
+        assert!(MissingGlyphs.check(&style).is_empty());
+    }
+
+    #[test]
+    fn test_glyphs_present_no_w019() {
+        let style = parse(
+            r#"{"version":8,"glyphs":"https://example.com/{fontstack}/{range}.pbf","sources":{"s":{"type":"vector","url":"mapbox://x"}},"layers":[{"id":"l","type":"symbol","source":"s","source-layer":"x","layout":{"text-field":["get","name"]}}]}"#,
+        );
+        assert!(MissingGlyphs.check(&style).is_empty());
     }
 
     #[test]

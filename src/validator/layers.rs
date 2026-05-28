@@ -205,6 +205,35 @@ pub fn validate_layers(style: &Style) -> Vec<Diagnostic> {
     for (i, layer) in style.layers.iter().enumerate() {
         let path = format!("layers[{}]", i);
 
+        // E024: id must be non-empty
+        if layer.id.is_empty() {
+            diags.push(
+                Diagnostic::error(
+                    "E024",
+                    format!("{}.id", path),
+                    format!("layers[{}] has an empty \"id\"", i),
+                )
+                .with_hint("assign a unique non-empty string id to every layer"),
+            );
+        }
+
+        // E019: type is required (unless layer uses ref)
+        if layer.layer_type.is_none() && layer.layer_ref.is_none() {
+            diags.push(
+                Diagnostic::error(
+                    "E019",
+                    format!("{}.type", path),
+                    format!(
+                        "layer \"{}\" is missing required \"type\"",
+                        layer.id
+                    ),
+                )
+                .with_hint(
+                    "set \"type\" to one of: background, fill, fill-extrusion, line, symbol, raster, circle, heatmap, hillshade, sky",
+                ),
+            );
+        }
+
         // Validate minzoom/maxzoom ranges
         if let Some(z) = layer.minzoom {
             if !(0.0..=24.0).contains(&z) {
@@ -411,6 +440,42 @@ mod tests {
 
     fn parse(json: &str) -> Style {
         serde_json::from_str(json).unwrap()
+    }
+
+    #[test]
+    fn test_layer_empty_id_e024() {
+        let style = parse(r#"{"version":8,"sources":{},"layers":[{"id":"","type":"background"}]}"#);
+        let diags = validate_layers(&style);
+        assert!(diags.iter().any(|d| d.code == "E024"));
+    }
+
+    #[test]
+    fn test_layer_nonempty_id_ok() {
+        let style =
+            parse(r#"{"version":8,"sources":{},"layers":[{"id":"bg","type":"background"}]}"#);
+        assert!(validate_layers(&style).iter().all(|d| d.code != "E024"));
+    }
+
+    #[test]
+    fn test_layer_missing_type_e019() {
+        let style = parse(r#"{"version":8,"sources":{},"layers":[{"id":"l"}]}"#);
+        let diags = validate_layers(&style);
+        assert!(diags.iter().any(|d| d.code == "E019"));
+    }
+
+    #[test]
+    fn test_layer_ref_no_type_ok() {
+        // ref layers inherit type from parent — no E019
+        let style = serde_json::from_value(serde_json::json!({
+            "version": 8,
+            "sources": {},
+            "layers": [
+                {"id": "base", "type": "fill"},
+                {"id": "derived", "ref": "base"}
+            ]
+        }))
+        .unwrap();
+        assert!(validate_layers(&style).iter().all(|d| d.code != "E019"));
     }
 
     #[test]

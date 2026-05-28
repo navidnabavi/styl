@@ -1,6 +1,9 @@
 use crate::diagnostic::Diagnostic;
 use crate::style::{
-    types::{GeoJsonSource, RasterDemSource, RasterSource, Source, VectorSource},
+    types::{
+        GeoJsonSource, ImageSource, RasterDemSource, RasterSource, Source, VectorSource,
+        VideoSource,
+    },
     Style,
 };
 use crate::validator::Validator;
@@ -22,9 +25,8 @@ pub fn validate_sources(style: &Style) -> Vec<Diagnostic> {
             Source::Raster(s) => diags.extend(validate_raster(s, &path)),
             Source::RasterDem(s) => diags.extend(validate_raster_dem(s, &path)),
             Source::GeoJson(s) => diags.extend(validate_geojson(s, &path)),
-            Source::Image(_) | Source::Video(_) => {
-                // These sources have no additional required fields beyond type
-            }
+            Source::Image(s) => diags.extend(validate_image(s, &path)),
+            Source::Video(s) => diags.extend(validate_video(s, &path)),
         }
     }
 
@@ -277,6 +279,35 @@ fn validate_geojson(s: &GeoJsonSource, path: &str) -> Vec<Diagnostic> {
     diags
 }
 
+fn validate_coords(coords: &[[f64; 2]; 4], path: &str) -> Vec<Diagnostic> {
+    let mut diags = Vec::new();
+    for (i, [lng, lat]) in coords.iter().enumerate() {
+        if !(-180.0..=180.0).contains(lng) {
+            diags.push(Diagnostic::error(
+                "E026",
+                format!("{}.coordinates[{}][0]", path, i),
+                format!("longitude {} is out of range [-180, 180]", lng),
+            ));
+        }
+        if !(-90.0..=90.0).contains(lat) {
+            diags.push(Diagnostic::error(
+                "E026",
+                format!("{}.coordinates[{}][1]", path, i),
+                format!("latitude {} is out of range [-90, 90]", lat),
+            ));
+        }
+    }
+    diags
+}
+
+fn validate_image(s: &ImageSource, path: &str) -> Vec<Diagnostic> {
+    validate_coords(&s.coordinates, path)
+}
+
+fn validate_video(s: &VideoSource, path: &str) -> Vec<Diagnostic> {
+    validate_coords(&s.coordinates, path)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -485,5 +516,35 @@ mod tests {
         assert!(diags
             .iter()
             .any(|d| d.code == "E015" && d.path.contains("bounds")));
+    }
+
+    #[test]
+    fn test_image_source_valid_coords() {
+        let style = parse(
+            r#"{"version":8,"sources":{"s":{"type":"image","url":"https://example.com/img.png","coordinates":[[-80,37],[-80,36],[-79,36],[-79,37]]}},"layers":[]}"#,
+        );
+        assert!(validate_sources(&style).is_empty());
+    }
+
+    #[test]
+    fn test_image_source_invalid_lng_e026() {
+        let style = parse(
+            r#"{"version":8,"sources":{"s":{"type":"image","url":"https://example.com/img.png","coordinates":[[-200,37],[-80,36],[-79,36],[-79,37]]}},"layers":[]}"#,
+        );
+        let diags = validate_sources(&style);
+        assert!(diags
+            .iter()
+            .any(|d| d.code == "E026" && d.path.contains("coordinates[0][0]")));
+    }
+
+    #[test]
+    fn test_video_source_invalid_lat_e026() {
+        let style = parse(
+            r#"{"version":8,"sources":{"s":{"type":"video","urls":["https://example.com/v.mp4"],"coordinates":[[-80,100],[-80,36],[-79,36],[-79,37]]}},"layers":[]}"#,
+        );
+        let diags = validate_sources(&style);
+        assert!(diags
+            .iter()
+            .any(|d| d.code == "E026" && d.path.contains("coordinates[0][1]")));
     }
 }

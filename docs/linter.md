@@ -200,6 +200,20 @@ Fix: set `heatmap-color` to an `interpolate` expression mapping density to a mea
 
 ---
 
+## W019 — Missing glyphs URL
+
+Style contains symbol layers with `text-field` but no root `glyphs` property. Text rendering will fail at runtime because the renderer has no font source.
+
+```json
+{
+  "layers": [{ "id": "labels", "type": "symbol", "layout": { "text-field": ["get", "name"] } }]
+}
+```
+
+Fix: add a `glyphs` URL template such as `"https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf"`.
+
+---
+
 ## Configuring Rules
 
 Severity can be overridden per-rule in `.stylrc`:
@@ -209,6 +223,7 @@ Severity can be overridden per-rule in `.stylrc`:
 W002 = "off"      # disable hidden-layer warnings
 W011 = "error"    # treat legacy filters as errors
 W013 = "error"    # treat empty symbol layers as errors
+W019 = "error"    # treat missing glyphs as errors
 ```
 
 Valid values: `"error"`, `"warn"`, `"off"`.

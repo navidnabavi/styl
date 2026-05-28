@@ -273,3 +273,81 @@ A feature in the style is not supported by the target spec (`--spec mapbox` or `
 ```
 
 **Fix:** remove the incompatible feature, or switch to `--spec maplibre` if targeting MapLibre only.
+
+---
+
+## E019 — Missing layer type
+
+A layer does not have a `type` field and does not use `ref` to inherit one from a parent layer.
+
+```json
+{ "id": "roads" }
+```
+
+Fix: add `"type"` with one of: `background`, `fill`, `fill-extrusion`, `line`, `symbol`, `raster`, `circle`, `heatmap`, `hillshade`, `sky`.
+
+---
+
+## E024 — Empty layer id
+
+A layer has an empty string `""` for its `id`. Every layer must have a unique, non-empty id.
+
+```json
+{ "id": "", "type": "background" }
+```
+
+---
+
+## E025 — Invalid terrain
+
+The root `terrain` object has a structural error.
+
+| Situation | Example message |
+|-----------|----------------|
+| Missing `source` | `terrain must have a "source" referencing a raster-dem source` |
+| `source` not a string | `terrain.source must be a string` |
+| `exaggeration` < 0 | `terrain.exaggeration must be >= 0, got -1` |
+| `exaggeration` wrong type | `terrain.exaggeration must be a number` |
+
+```json
+{ "terrain": { "exaggeration": 1.5 } }
+```
+
+Fix: add `"source"` referencing a `raster-dem` source id.
+
+---
+
+## E026 — Invalid image/video source coordinates
+
+An `image` or `video` source has a coordinate outside valid bounds (longitude in `[-180, 180]`, latitude in `[-90, 90]`).
+
+```json
+{
+  "type": "image",
+  "url": "...",
+  "coordinates": [[-200, 37], [-80, 36], [-79, 36], [-79, 37]]
+}
+```
+
+---
+
+## E027 — Invalid light property
+
+The root `light` object has a property with an invalid value.
+
+| Property | Valid values |
+|----------|-------------|
+| `anchor` | `"map"` or `"viewport"` |
+| `intensity` | number in `[0, 1]` |
+| `color` | CSS color string |
+| `position` | array of exactly 3 numbers `[radial, azimuthal, polar]` |
+
+---
+
+## E028 — Invalid transition property
+
+`transition.duration` or `transition.delay` is negative or not a number. Both must be non-negative integers (milliseconds).
+
+```json
+{ "transition": { "duration": -100 } }
+```
