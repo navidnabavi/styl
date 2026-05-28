@@ -139,6 +139,7 @@ impl LintRule for ZeroDasharray {
                 if let Some(paint) = layer.get_mut("paint").and_then(|p| p.as_object_mut()) {
                     if let Some(da) = paint.get_mut("line-dasharray") {
                         if let Some(arr) = da.as_array() {
+                            // unwrap_or(true): non-numbers (expressions) are preserved as-is
                             let filtered: Vec<serde_json::Value> = arr
                                 .iter()
                                 .filter(|v| v.as_f64().map(|n| n > 0.0).unwrap_or(true))

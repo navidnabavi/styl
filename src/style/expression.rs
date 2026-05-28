@@ -484,10 +484,12 @@ pub fn is_legacy_filter(value: &Value) -> bool {
         if let Some(first) = arr.first() {
             if let Some(op) = first.as_str() {
                 return match op {
-                    "!=" | "!in" | "!has" | "none" => true,
-                    "==" | ">" | ">=" | "<" | "<=" | "in" | "has" => {
+                    "!=" | "!has" | "none" => true,
+                    "!in" => arr.len() >= 3,
+                    "==" | ">" | ">=" | "<" | "<=" | "has" => {
                         arr.get(1).map(|a| a.is_string()).unwrap_or(false)
                     }
+                    "in" => arr.len() >= 3 && arr.get(1).map(|a| a.is_string()).unwrap_or(false),
                     "all" | "any" => arr[1..].iter().any(is_unambiguously_legacy_filter),
                     _ => false,
                 };
@@ -517,7 +519,7 @@ pub fn migrate_legacy_filter(value: &Value) -> Value {
                     let val = arr[2].clone();
                     return json!([op, ["get", key], val]);
                 }
-                "has" => {
+                "has" if arr.len() >= 2 => {
                     // ["has", "key"] is already valid in expression syntax
                     return value.clone();
                 }
@@ -525,12 +527,12 @@ pub fn migrate_legacy_filter(value: &Value) -> Value {
                     let key = arr[1].clone();
                     return json!(["!", ["has", key]]);
                 }
-                "in" if arr.len() >= 2 && arr[1].is_string() => {
+                "in" if arr.len() >= 3 && arr[1].is_string() => {
                     let key = arr[1].clone();
                     let values: Vec<Value> = arr[2..].to_vec();
                     return json!(["match", ["get", key], values, true, false]);
                 }
-                "!in" if arr.len() >= 2 && arr[1].is_string() => {
+                "!in" if arr.len() >= 3 && arr[1].is_string() => {
                     let key = arr[1].clone();
                     let values: Vec<Value> = arr[2..].to_vec();
                     return json!(["match", ["get", key], values, false, true]);
@@ -561,10 +563,12 @@ fn is_unambiguously_legacy_filter(value: &Value) -> bool {
         if let Some(first) = arr.first() {
             if let Some(op) = first.as_str() {
                 return match op {
-                    "!=" | "!in" | "!has" | "none" => true,
-                    "==" | ">" | ">=" | "<" | "<=" | "in" => {
+                    "!=" | "!has" | "none" => true,
+                    "!in" => arr.len() >= 3,
+                    "==" | ">" | ">=" | "<" | "<=" => {
                         arr.get(1).map(|a| a.is_string()).unwrap_or(false)
                     }
+                    "in" => arr.len() >= 3 && arr.get(1).map(|a| a.is_string()).unwrap_or(false),
                     _ => false,
                 };
             }
@@ -679,5 +683,31 @@ mod tests {
         let invalid = json!(["rgb", 255, 0]);
         let diags = validate_expression(&invalid, "p", 0);
         assert!(diags.iter().any(|d| d.code == "E021"));
+    }
+
+    #[test]
+    fn test_migrate_has_no_key_passthrough() {
+        // ["has"] with no key: guard prevents migration, returns as-is
+        let input = json!(["has"]);
+        let result = migrate_legacy_filter(&input);
+        assert_eq!(result, input);
+    }
+
+    #[test]
+    fn test_migrate_in_no_values_passthrough() {
+        // ["in", "key"] with no values: not detected as legacy (no W011) and not migrated
+        let input = json!(["in", "key"]);
+        assert!(!is_legacy_filter(&input));
+        let result = migrate_legacy_filter(&input);
+        assert_eq!(result, input);
+    }
+
+    #[test]
+    fn test_migrate_not_in_no_values_passthrough() {
+        // ["!in", "key"] with no values: not detected as legacy (no W011) and not migrated
+        let input = json!(["!in", "key"]);
+        assert!(!is_legacy_filter(&input));
+        let result = migrate_legacy_filter(&input);
+        assert_eq!(result, input);
     }
 }

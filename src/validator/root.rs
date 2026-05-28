@@ -144,6 +144,12 @@ pub fn validate_root(style: &Style) -> Vec<Diagnostic> {
                     }
                 }
             }
+        } else {
+            diags.push(Diagnostic::error(
+                "E025",
+                "terrain",
+                "terrain must be an object",
+            ));
         }
     }
 
@@ -381,6 +387,15 @@ mod tests {
         assert!(diags
             .iter()
             .any(|d| d.code == "E025" && d.path.contains("source")));
+    }
+
+    #[test]
+    fn test_terrain_not_object_e025() {
+        let style = parse(r#"{"version":8,"terrain":"bad","sources":{},"layers":[]}"#);
+        let diags = validate_root(&style);
+        assert!(diags
+            .iter()
+            .any(|d| d.code == "E025" && d.path == "terrain"));
     }
 
     #[test]
