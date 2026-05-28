@@ -39,19 +39,6 @@ Out-of-range values on root properties:
 
 ---
 
-## E009 — Layer source not found
-
-A layer references a `source` ID that doesn't exist in the top-level `sources` map.
-
-```json
-{
-  "sources": {},
-  "layers": [{ "id": "roads", "type": "line", "source": "osm" }]
-}
-```
-
----
-
 ## E004 — Missing source
 
 Non-background, non-sky layers must have a `source` field (unless they use `ref`).
@@ -113,6 +100,19 @@ A layout property is not valid for the layer's type. See [Layer Properties](laye
 { "sprite": "" }
 { "sprite": [] }
 { "sprite": [{"id": "", "url": "https://example.com/sprite"}] }
+```
+
+---
+
+## E009 — Layer source not found
+
+A layer references a `source` ID that doesn't exist in the top-level `sources` map.
+
+```json
+{
+  "sources": {},
+  "layers": [{ "id": "roads", "type": "line", "source": "osm" }]
+}
 ```
 
 ---
@@ -194,34 +194,6 @@ Valid forms:
 
 ---
 
-## E020 — Empty expression array
-
-An expression must be a non-empty array. `[]` is not valid.
-
----
-
-## E021 — Invalid expression argument count
-
-An expression operator received the wrong number of arguments.
-
-- `"case"` requires pairs of `[condition, output]` plus a final fallback (minimum 4 args, even count)
-- `"match"` requires an input, at least one label-output pair, and a fallback (minimum 5 args)
-- Other operators (e.g. `"rgb"`, `"hsl"`, `"at"`, `"slice"`) enforce their own fixed or minimum arity
-
-```json
-["case", true, "red"]
-```
-
-→ `E021`: `"case"` requires pairs of [condition, output] plus a fallback
-
----
-
-## E022 — Unknown expression operator
-
-An expression's first element is not a recognized operator. See [Expressions](expressions.md) for all supported operators.
-
----
-
 ## E017 — Invalid inline GeoJSON
 
 When `data` is an inline JSON object, it must be a valid GeoJSON object per RFC 7946 (FeatureCollection, Feature, or Geometry).
@@ -251,6 +223,44 @@ Expression values (arrays starting with an operator string) are validated struct
 
 ---
 
+## E019 — Missing layer type
+
+A layer does not have a `type` field and does not use `ref` to inherit one from a parent layer.
+
+```json
+{ "id": "roads" }
+```
+
+Fix: add `"type"` with one of: `background`, `fill`, `fill-extrusion`, `line`, `symbol`, `raster`, `circle`, `heatmap`, `hillshade`, `sky`.
+
+---
+
+## E020 — Empty expression array
+
+An expression must be a non-empty array. `[]` is not valid.
+
+---
+
+## E021 — Invalid expression argument count
+
+An expression operator received the wrong number of arguments.
+
+- `"case"` requires pairs of `[condition, output]` plus a final fallback (minimum 4 args, even count)
+- `"match"` requires an input, at least one label-output pair, and a fallback (minimum 5 args)
+- Other operators (e.g. `"rgb"`, `"hsl"`, `"at"`, `"slice"`) enforce their own fixed or minimum arity
+
+```json
+["case", true, "red"]
+```
+
+→ `E021`: `"case"` requires pairs of [condition, output] plus a fallback
+
+---
+
+## E022 — Unknown expression operator
+
+An expression's first element is not a recognized operator. See [Expressions](expressions.md) for all supported operators.
+
 ---
 
 ## E023 — Spec incompatibility
@@ -273,18 +283,6 @@ A feature in the style is not supported by the target spec (`--spec mapbox` or `
 ```
 
 **Fix:** remove the incompatible feature, or switch to `--spec maplibre` if targeting MapLibre only.
-
----
-
-## E019 — Missing layer type
-
-A layer does not have a `type` field and does not use `ref` to inherit one from a parent layer.
-
-```json
-{ "id": "roads" }
-```
-
-Fix: add `"type"` with one of: `background`, `fill`, `fill-extrusion`, `line`, `symbol`, `raster`, `circle`, `heatmap`, `hillshade`, `sky`.
 
 ---
 
