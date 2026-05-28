@@ -12,7 +12,7 @@ cargo test validator::root         # specific module tests
 cargo run -- check style.json      # validate + lint a file
 cargo run -- validate style.json   # validators only (E-codes)
 cargo run -- lint style.json       # linter only (W-codes)
-cargo run -- lint --fix style.json    # autofix safe issues in-place (W004, W007, W015-W017)
+cargo run -- lint --fix style.json    # autofix safe issues in-place (W004, W007, W010, W011, W015-W017)
 cargo run -- fmt style.json        # format in-place
 cargo run -- fmt --check style.json  # CI check (exit 1 if would change)
 cargo run -- check --format json style.json  # machine-readable output
@@ -57,9 +57,9 @@ Dual crate: `src/lib.rs` exposes the public API as `styl`; `src/main.rs` is the 
 
 ### Linter (W-codes, best practices)
 
-`src/linter/mod.rs::run_all()` instantiates all 12 rules via `LintRule` trait.
+`src/linter/mod.rs::run_all()` instantiates all 19 rules via `LintRule` trait.
 
-Rules in `src/linter/rules/`: `duplicate_ids` (W001), `visibility` (W002), `unused_layers` (W003), `stop_order` (W004), `z_order` (W005), `expression_depth` (W006), `perf_hints` (W007–W018).
+Rules in `src/linter/rules/`: `duplicate_ids` (W001), `visibility` (W002), `unused_layers` (W003), `stop_order` (W004), `z_order` (W005), `expression_depth` (W006), `perf_hints` (W007–W019).
 
 Config in `src/linter/config.rs` — TOML `.stylrc` auto-discovered by walking up the directory tree. Supports per-rule severity overrides (error/warn/off) and `format.indent`.
 
@@ -69,6 +69,13 @@ Config in `src/linter/config.rs` — TOML `.stylrc` auto-discovered by walking u
 `src/formatter/normalizer.rs::format_style(value, indent)` — applies key ordering recursively: root → sources (Source context) → layers (Layer context) → paint/layout (alphabetical sort).
 
 Requires `serde_json` `preserve_order` feature (in Cargo.toml) so `IndexMap`-backed ordering survives serialization.
+
+### Validator/linter patterns
+
+- **Expression skip**: when validating a literal property value, skip if it's an array whose first element is a string — that's an expression. Check `arr.first().map(|v| v.is_string()).unwrap_or(false)`.
+- **Fixable rules**: must be added to BOTH `run_all` and `run_fixes` in `src/linter/mod.rs`. `run_all` detects; `run_fixes` applies.
+- **GeoJSON source** has no `minzoom` field (only `maxzoom`). Don't add minzoom validation there.
+- **ref layers**: exempt from E004 (source required) and E019 (type required) — they inherit from parent.
 
 ### Exit codes
 
