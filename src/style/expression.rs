@@ -512,36 +512,28 @@ pub fn migrate_legacy_filter(value: &Value) -> Value {
     if let Some(arr) = value.as_array() {
         if let Some(op) = arr.first().and_then(|v| v.as_str()) {
             match op {
-                "==" | "!=" | "<" | "<=" | ">" | ">=" => {
-                    if arr.len() >= 3 && arr[1].is_string() {
-                        let key = arr[1].clone();
-                        let val = arr[2].clone();
-                        return json!([op, ["get", key], val]);
-                    }
+                "==" | "!=" | "<" | "<=" | ">" | ">=" if arr.len() >= 3 && arr[1].is_string() => {
+                    let key = arr[1].clone();
+                    let val = arr[2].clone();
+                    return json!([op, ["get", key], val]);
                 }
                 "has" => {
                     // ["has", "key"] is already valid in expression syntax
                     return value.clone();
                 }
-                "!has" => {
-                    if arr.len() >= 2 {
-                        let key = arr[1].clone();
-                        return json!(["!", ["has", key]]);
-                    }
+                "!has" if arr.len() >= 2 => {
+                    let key = arr[1].clone();
+                    return json!(["!", ["has", key]]);
                 }
-                "in" => {
-                    if arr.len() >= 2 && arr[1].is_string() {
-                        let key = arr[1].clone();
-                        let values: Vec<Value> = arr[2..].to_vec();
-                        return json!(["match", ["get", key], values, true, false]);
-                    }
+                "in" if arr.len() >= 2 && arr[1].is_string() => {
+                    let key = arr[1].clone();
+                    let values: Vec<Value> = arr[2..].to_vec();
+                    return json!(["match", ["get", key], values, true, false]);
                 }
-                "!in" => {
-                    if arr.len() >= 2 && arr[1].is_string() {
-                        let key = arr[1].clone();
-                        let values: Vec<Value> = arr[2..].to_vec();
-                        return json!(["match", ["get", key], values, false, true]);
-                    }
+                "!in" if arr.len() >= 2 && arr[1].is_string() => {
+                    let key = arr[1].clone();
+                    let values: Vec<Value> = arr[2..].to_vec();
+                    return json!(["match", ["get", key], values, false, true]);
                 }
                 "none" => {
                     let mut result = vec![json!("all")];
