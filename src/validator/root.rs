@@ -1,4 +1,5 @@
 use crate::diagnostic::Diagnostic;
+use crate::style::types::Source;
 use crate::style::Style;
 use crate::validator::Validator;
 
@@ -115,7 +116,41 @@ pub fn validate_root(style: &Style) -> Vec<Diagnostic> {
                         "terrain.source must be a string",
                     ));
                 }
-                _ => {}
+                Some(src) => {
+                    let src_id = src.as_str().unwrap();
+                    match style.sources.get(src_id) {
+                        None => {
+                            diags.push(
+                                Diagnostic::error(
+                                    "E025",
+                                    "terrain.source",
+                                    format!(
+                                        "terrain.source \"{}\" is not defined in sources",
+                                        src_id
+                                    ),
+                                )
+                                .with_hint(
+                                    "add a raster-dem source with this id, or fix the source reference",
+                                ),
+                            );
+                        }
+                        Some(source) if !matches!(source, Source::RasterDem(_)) => {
+                            diags.push(
+                                Diagnostic::error(
+                                    "E025",
+                                    "terrain.source",
+                                    format!(
+                                        "terrain.source \"{}\" must reference a raster-dem source, got \"{}\"",
+                                        src_id,
+                                        source.source_type()
+                                    ),
+                                )
+                                .with_hint("terrain requires a source of type \"raster-dem\""),
+                            );
+                        }
+                        _ => {}
+                    }
+                }
             }
             if let Some(exag) = obj.get("exaggeration") {
                 // expressions (arrays starting with a string) are valid — only validate literals
@@ -263,6 +298,121 @@ pub fn validate_root(style: &Style) -> Vec<Diagnostic> {
         }
     }
 
+    // E029: fog property validation
+    if let Some(fog) = &style.fog {
+        if let Some(obj) = fog.as_object() {
+            for color_prop in &["color", "high-color", "space-color"] {
+                if let Some(v) = obj.get(*color_prop) {
+                    let is_expr = v
+                        .as_array()
+                        .and_then(|a| a.first())
+                        .map(|f| f.is_string())
+                        .unwrap_or(false);
+                    if !is_expr {
+                        match v.as_str() {
+                            Some(s) if csscolorparser::parse(s).is_err() => {
+                                diags.push(Diagnostic::error(
+                                    "E029",
+                                    format!("fog.{}", color_prop),
+                                    format!("fog.{} invalid color: \"{}\"", color_prop, s),
+                                ));
+                            }
+                            None => {
+                                diags.push(Diagnostic::error(
+                                    "E029",
+                                    format!("fog.{}", color_prop),
+                                    format!("fog.{} must be a CSS color string", color_prop),
+                                ));
+                            }
+                            _ => {}
+                        }
+                    }
+                }
+            }
+            for prop in &["horizon-blend", "star-intensity"] {
+                if let Some(v) = obj.get(*prop) {
+                    let is_expr = v
+                        .as_array()
+                        .and_then(|a| a.first())
+                        .map(|f| f.is_string())
+                        .unwrap_or(false);
+                    if !is_expr {
+                        match v.as_f64() {
+                            Some(n) if !(0.0..=1.0).contains(&n) => {
+                                diags.push(Diagnostic::error(
+                                    "E029",
+                                    format!("fog.{}", prop),
+                                    format!("fog.{} must be in [0, 1], got {}", prop, n),
+                                ));
+                            }
+                            None => {
+                                diags.push(Diagnostic::error(
+                                    "E029",
+                                    format!("fog.{}", prop),
+                                    format!("fog.{} must be a number", prop),
+                                ));
+                            }
+                            _ => {}
+                        }
+                    }
+                }
+            }
+            if let Some(range) = obj.get("range") {
+                let is_expr = range
+                    .as_array()
+                    .and_then(|a| a.first())
+                    .map(|f| f.is_string())
+                    .unwrap_or(false);
+                if !is_expr {
+                    match range.as_array() {
+                        Some(arr) if arr.len() != 2 => {
+                            diags.push(Diagnostic::error(
+                                "E029",
+                                "fog.range",
+                                format!(
+                                    "fog.range must have 2 elements [start, end], got {}",
+                                    arr.len()
+                                ),
+                            ));
+                        }
+                        Some(arr) => {
+                            for (i, v) in arr.iter().enumerate() {
+                                if !v.is_number() {
+                                    diags.push(Diagnostic::error(
+                                        "E029",
+                                        format!("fog.range[{}]", i),
+                                        format!("fog.range[{}] must be a number", i),
+                                    ));
+                                }
+                            }
+                            if let (Some(start), Some(end)) = (arr[0].as_f64(), arr[1].as_f64()) {
+                                if start > end {
+                                    diags.push(Diagnostic::error(
+                                        "E029",
+                                        "fog.range",
+                                        format!(
+                                            "fog.range start ({}) must be <= end ({})",
+                                            start, end
+                                        ),
+                                    ));
+                                }
+                            }
+                        }
+                        None => {
+                            diags.push(Diagnostic::error(
+                                "E029",
+                                "fog.range",
+                                "fog.range must be an array [start, end]",
+                            ));
+                        }
+                    }
+                }
+            }
+        } else {
+            diags.push(Diagnostic::error("E029", "fog", "fog must be an object"));
+        }
+    }
+
     // E028: transition.duration and transition.delay must be >= 0
     if let Some(transition) = &style.transition {
         if let Some(obj) = transition.as_object() {
@@ -401,9 +551,30 @@ mod tests {
     #[test]
     fn test_terrain_valid() {
         let style = parse(
-            r#"{"version":8,"terrain":{"source":"dem","exaggeration":1.5},"sources":{},"layers":[]}"#,
+            r#"{"version":8,"terrain":{"source":"dem","exaggeration":1.5},"sources":{"dem":{"type":"raster-dem","url":"x"}},"layers":[]}"#,
         );
         assert!(validate_root(&style).iter().all(|d| d.code != "E025"));
+    }
+
+    #[test]
+    fn test_terrain_source_not_in_sources_e025() {
+        let style =
+            parse(r#"{"version":8,"terrain":{"source":"missing"},"sources":{},"layers":[]}"#);
+        let diags = validate_root(&style);
+        assert!(diags
+            .iter()
+            .any(|d| d.code == "E025" && d.path == "terrain.source"));
+    }
+
+    #[test]
+    fn test_terrain_source_wrong_type_e025() {
+        let style = parse(
+            r#"{"version":8,"terrain":{"source":"vec"},"sources":{"vec":{"type":"vector","url":"x"}},"layers":[]}"#,
+        );
+        let diags = validate_root(&style);
+        assert!(diags.iter().any(|d| d.code == "E025"
+            && d.path == "terrain.source"
+            && d.message.contains("raster-dem")));
     }
 
     #[test]
@@ -478,6 +649,66 @@ mod tests {
             r#"{"version":8,"transition":{"duration":300,"delay":0},"sources":{},"layers":[]}"#,
         );
         assert!(validate_root(&style).iter().all(|d| d.code != "E028"));
+    }
+
+    #[test]
+    fn test_fog_valid() {
+        let style = parse(
+            r#"{"version":8,"fog":{"color":"white","horizon-blend":0.1,"range":[0.5,10]},"sources":{},"layers":[]}"#,
+        );
+        assert!(validate_root(&style).iter().all(|d| d.code != "E029"));
+    }
+
+    #[test]
+    fn test_fog_not_object_e029() {
+        let style = parse(r#"{"version":8,"fog":"bad","sources":{},"layers":[]}"#);
+        let diags = validate_root(&style);
+        assert!(diags.iter().any(|d| d.code == "E029" && d.path == "fog"));
+    }
+
+    #[test]
+    fn test_fog_invalid_color_e029() {
+        let style = parse(r#"{"version":8,"fog":{"color":"notacolor"},"sources":{},"layers":[]}"#);
+        let diags = validate_root(&style);
+        assert!(diags
+            .iter()
+            .any(|d| d.code == "E029" && d.path == "fog.color"));
+    }
+
+    #[test]
+    fn test_fog_horizon_blend_out_of_range_e029() {
+        let style = parse(r#"{"version":8,"fog":{"horizon-blend":1.5},"sources":{},"layers":[]}"#);
+        let diags = validate_root(&style);
+        assert!(diags
+            .iter()
+            .any(|d| d.code == "E029" && d.path == "fog.horizon-blend"));
+    }
+
+    #[test]
+    fn test_fog_range_wrong_length_e029() {
+        let style = parse(r#"{"version":8,"fog":{"range":[1,2,3]},"sources":{},"layers":[]}"#);
+        let diags = validate_root(&style);
+        assert!(diags
+            .iter()
+            .any(|d| d.code == "E029" && d.path == "fog.range"));
+    }
+
+    #[test]
+    fn test_fog_range_inverted_e029() {
+        let style = parse(r#"{"version":8,"fog":{"range":[10,1]},"sources":{},"layers":[]}"#);
+        let diags = validate_root(&style);
+        assert!(diags
+            .iter()
+            .any(|d| d.code == "E029" && d.path == "fog.range"));
+    }
+
+    #[test]
+    fn test_fog_not_object_e029_parses_null() {
+        // fog: null is valid JSON but not an object
+        let style = parse(r#"{"version":8,"fog":null,"sources":{},"layers":[]}"#);
+        // null fog should not trigger E029 (treated as absent)
+        let diags = validate_root(&style);
+        assert!(!diags.iter().any(|d| d.code == "E029"));
     }
 
     #[test]

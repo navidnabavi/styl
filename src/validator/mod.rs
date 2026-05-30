@@ -27,6 +27,7 @@ pub fn run_all(style: &Style, spec: &Spec) -> Vec<Diagnostic> {
         Box::new(layers::LayersValidator),
         Box::new(refs::RefsValidator),
         Box::new(compat::SkyCompatValidator),
+        Box::new(compat::ColorReliefCompatValidator),
         Box::new(compat::TerrainCompatValidator),
         Box::new(compat::FogCompatValidator),
         Box::new(compat::ExpressionCompatValidator),

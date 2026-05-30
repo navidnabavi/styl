@@ -270,6 +270,7 @@ A feature in the style is not supported by the target spec (`--spec mapbox` or `
 | Feature | MapLibre | Mapbox |
 |---------|----------|--------|
 | `sky` layer type | Yes | No |
+| `color-relief` layer type | Yes | No |
 | `terrain` root property | Yes | No |
 | `fog` root property | Yes | No |
 | `distance-from-center` expression | Yes | No |
@@ -304,6 +305,8 @@ The root `terrain` object has a structural error.
 |-----------|----------------|
 | Missing `source` | `terrain must have a "source" referencing a raster-dem source` |
 | `source` not a string | `terrain.source must be a string` |
+| `source` ID not in `sources` | `terrain.source "dem" is not defined in sources` |
+| `source` not raster-dem type | `terrain.source "dem" must reference a raster-dem source, got "vector"` |
 | `exaggeration` < 0 | `terrain.exaggeration must be >= 0, got -1` |
 | `exaggeration` wrong type | `terrain.exaggeration must be a number` |
 
@@ -311,7 +314,7 @@ The root `terrain` object has a structural error.
 { "terrain": { "exaggeration": 1.5 } }
 ```
 
-Fix: add `"source"` referencing a `raster-dem` source id.
+Fix: add `"source"` referencing an existing `raster-dem` source id.
 
 ---
 
@@ -349,3 +352,24 @@ The root `light` object has a property with an invalid value.
 ```json
 { "transition": { "duration": -100 } }
 ```
+
+---
+
+## E029 — Invalid fog property
+
+The root `fog` object has a property with an invalid value. `fog` is MapLibre-only; it also triggers E023 under `--spec mapbox` or `--spec both`.
+
+| Property | Valid values |
+|----------|-------------|
+| `color` | CSS color string |
+| `high-color` | CSS color string |
+| `space-color` | CSS color string |
+| `horizon-blend` | number in `[0, 1]` |
+| `star-intensity` | number in `[0, 1]` |
+| `range` | array of exactly 2 numbers `[start, end]` where start ≤ end |
+
+```json
+{ "fog": { "horizon-blend": 1.5 } }
+```
+
+Expression values (arrays starting with an operator string) are not validated as literals.

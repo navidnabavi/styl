@@ -5,6 +5,7 @@ use crate::style::Style;
 use crate::validator::Validator;
 
 pub struct SkyCompatValidator;
+pub struct ColorReliefCompatValidator;
 pub struct TerrainCompatValidator;
 pub struct FogCompatValidator;
 pub struct ExpressionCompatValidator;
@@ -24,6 +25,28 @@ impl Validator for SkyCompatValidator {
                     "E023",
                     format!("layers[{}].type", i),
                     "sky layer is not supported in Mapbox spec",
+                )
+                .with_hint("remove this layer or switch to --spec maplibre")
+            })
+            .collect()
+    }
+}
+
+impl Validator for ColorReliefCompatValidator {
+    fn spec_affinity(&self) -> Option<SpecAffinity> {
+        Some(SpecAffinity::MaplibreOnly)
+    }
+    fn validate(&self, style: &Style) -> Vec<Diagnostic> {
+        style
+            .layers
+            .iter()
+            .enumerate()
+            .filter(|(_, l)| l.layer_type == Some(LayerType::ColorRelief))
+            .map(|(i, _)| {
+                Diagnostic::error(
+                    "E023",
+                    format!("layers[{}].type", i),
+                    "color-relief layer is not supported in Mapbox spec",
                 )
                 .with_hint("remove this layer or switch to --spec maplibre")
             })
@@ -123,6 +146,25 @@ mod tests {
 
     fn parse(json: &str) -> crate::style::Style {
         serde_json::from_str(json).unwrap()
+    }
+
+    // ColorReliefCompatValidator
+    #[test]
+    fn color_relief_compat_emits_e023_for_color_relief_layer() {
+        let style = parse(
+            r#"{"version":8,"sources":{"s":{"type":"raster","url":"x"}},"layers":[{"id":"cr","type":"color-relief","source":"s"}]}"#,
+        );
+        let diags = ColorReliefCompatValidator.validate(&style);
+        assert!(diags
+            .iter()
+            .any(|d| d.code == "E023" && d.path.contains("layers[0]")));
+    }
+
+    #[test]
+    fn color_relief_compat_clean_for_non_color_relief_layer() {
+        let style =
+            parse(r#"{"version":8,"sources":{},"layers":[{"id":"bg","type":"background"}]}"#);
+        assert!(ColorReliefCompatValidator.validate(&style).is_empty());
     }
 
     // SkyCompatValidator

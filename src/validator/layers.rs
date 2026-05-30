@@ -229,7 +229,7 @@ pub fn validate_layers(style: &Style) -> Vec<Diagnostic> {
                     ),
                 )
                 .with_hint(
-                    "set \"type\" to one of: background, fill, fill-extrusion, line, symbol, raster, circle, heatmap, hillshade, sky",
+                    "set \"type\" to one of: background, fill, fill-extrusion, line, symbol, raster, circle, heatmap, hillshade, sky, color-relief",
                 ),
             );
         }
