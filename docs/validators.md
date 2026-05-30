@@ -231,7 +231,9 @@ A layer does not have a `type` field and does not use `ref` to inherit one from 
 { "id": "roads" }
 ```
 
-Fix: add `"type"` with one of: `background`, `fill`, `fill-extrusion`, `line`, `symbol`, `raster`, `circle`, `heatmap`, `hillshade`, `sky`.
+Fix: add `"type"` with one of: `background`, `fill`, `fill-extrusion`, `line`, `symbol`, `raster`, `circle`, `heatmap`, `hillshade`, `sky`, `color-relief`.
+
+> **Note:** `color-relief` is MapLibre-only. Using it with `--spec mapbox` or `--spec both` also triggers E023.
 
 ---
 
