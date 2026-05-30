@@ -44,6 +44,8 @@ pub fn run_all(style: &Style, spec: &Spec) -> Vec<Diagnostic> {
         Box::new(rules::perf_hints::LinePatternOverridesColor),
         Box::new(rules::perf_hints::HeatmapMissingColor),
         Box::new(rules::perf_hints::MissingGlyphs),
+        Box::new(rules::perf_hints::FogMissingColor),
+        Box::new(rules::perf_hints::FogMissingRange),
     ];
 
     rules

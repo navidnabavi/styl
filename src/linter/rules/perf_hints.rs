@@ -561,6 +561,52 @@ impl LintRule for HeatmapMissingColor {
     }
 }
 
+/// W020: fog defined without explicit color
+pub struct FogMissingColor;
+
+impl LintRule for FogMissingColor {
+    fn code(&self) -> &'static str {
+        "W020"
+    }
+
+    fn check(&self, style: &Style) -> Vec<Diagnostic> {
+        match &style.fog {
+            Some(fog) if fog.as_object().is_none_or(|o| !o.contains_key("color")) => {
+                vec![Diagnostic::warning(
+                    "W020",
+                    "fog.color",
+                    "fog is defined but \"color\" is not explicitly set — renderer uses default",
+                )
+                .with_hint("set \"color\" to control the fog appearance")]
+            }
+            _ => vec![],
+        }
+    }
+}
+
+/// W021: fog defined without explicit range
+pub struct FogMissingRange;
+
+impl LintRule for FogMissingRange {
+    fn code(&self) -> &'static str {
+        "W021"
+    }
+
+    fn check(&self, style: &Style) -> Vec<Diagnostic> {
+        match &style.fog {
+            Some(fog) if fog.as_object().is_none_or(|o| !o.contains_key("range")) => {
+                vec![Diagnostic::warning(
+                    "W021",
+                    "fog.range",
+                    "fog is defined but \"range\" is not explicitly set — renderer uses default",
+                )
+                .with_hint("set \"range\" to [start_distance, end_distance] to control fog extent")]
+            }
+            _ => vec![],
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1022,5 +1068,64 @@ mod tests {
     #[test]
     fn test_fix_line_pattern_is_fixable() {
         assert!(LinePatternOverridesColor.is_fixable());
+    }
+
+    #[test]
+    fn test_fog_missing_color_w020() {
+        let style = parse(r#"{"version":8,"fog":{"range":[0,10]},"sources":{},"layers":[]}"#);
+        assert!(FogMissingColor
+            .check(&style)
+            .iter()
+            .any(|d| d.code == "W020"));
+    }
+
+    #[test]
+    fn test_fog_with_color_ok() {
+        let style = parse(
+            r#"{"version":8,"fog":{"color":"white","range":[0,10]},"sources":{},"layers":[]}"#,
+        );
+        assert!(FogMissingColor.check(&style).is_empty());
+    }
+
+    #[test]
+    fn test_no_fog_no_w020() {
+        let style = parse(r#"{"version":8,"sources":{},"layers":[]}"#);
+        assert!(FogMissingColor.check(&style).is_empty());
+    }
+
+    #[test]
+    fn test_fog_missing_range_w021() {
+        let style = parse(r#"{"version":8,"fog":{"color":"white"},"sources":{},"layers":[]}"#);
+        assert!(FogMissingRange
+            .check(&style)
+            .iter()
+            .any(|d| d.code == "W021"));
+    }
+
+    #[test]
+    fn test_fog_with_range_ok() {
+        let style = parse(
+            r#"{"version":8,"fog":{"color":"white","range":[0,10]},"sources":{},"layers":[]}"#,
+        );
+        assert!(FogMissingRange.check(&style).is_empty());
+    }
+
+    #[test]
+    fn test_no_fog_no_w021() {
+        let style = parse(r#"{"version":8,"sources":{},"layers":[]}"#);
+        assert!(FogMissingRange.check(&style).is_empty());
+    }
+
+    #[test]
+    fn test_empty_fog_fires_both_w020_w021() {
+        let style = parse(r#"{"version":8,"fog":{},"sources":{},"layers":[]}"#);
+        assert!(FogMissingColor
+            .check(&style)
+            .iter()
+            .any(|d| d.code == "W020"));
+        assert!(FogMissingRange
+            .check(&style)
+            .iter()
+            .any(|d| d.code == "W021"));
     }
 }

@@ -214,6 +214,30 @@ Fix: add a `glyphs` URL template such as `"https://demotiles.maplibre.org/font/{
 
 ---
 
+## W020 — Fog missing color
+
+`fog` is defined but `color` is not explicitly set. The renderer uses a default color which may not match the intended appearance.
+
+```json
+{ "fog": { "range": [0, 10] } }
+```
+
+Fix: add `"color"` to the `fog` object.
+
+---
+
+## W021 — Fog missing range
+
+`fog` is defined but `range` is not explicitly set. The renderer uses a default range which may not match the scene scale.
+
+```json
+{ "fog": { "color": "white" } }
+```
+
+Fix: add `"range": [start_distance, end_distance]` to the `fog` object.
+
+---
+
 ## Configuring Rules
 
 Severity can be overridden per-rule in `.stylrc`:
