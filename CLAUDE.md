@@ -43,7 +43,7 @@ Dual crate: `src/lib.rs` exposes the public API as `styl`; `src/main.rs` is the 
 
 - `src/diagnostic.rs` — `Diagnostic { severity, code, path, message, hint }` + three renderers (`render_human`, `render_json`, `render_github`). All validators/linters produce `Vec<Diagnostic>`.
 - `src/style/types.rs` — `Style` root struct + all `Source` variants (vector, raster, raster-dem, geojson, image, video). Uses `indexmap::IndexMap` for sources to preserve insertion order.
-- `src/style/layer.rs` — `Layer` struct + `LayerType` enum (10 variants). Paint/layout stored as `serde_json::Value` for flexible validation.
+- `src/style/layer.rs` — `Layer` struct + `LayerType` enum (11 variants, `color-relief` is MapLibre-only). Paint/layout stored as `serde_json::Value` for flexible validation.
 - `src/style/expression.rs` — `validate_expression(value, path, depth)` recursively validates expression operator arity and emits W006 at depth > 10.
 
 ### Validators (E-codes, spec violations)
@@ -57,9 +57,9 @@ Dual crate: `src/lib.rs` exposes the public API as `styl`; `src/main.rs` is the 
 
 ### Linter (W-codes, best practices)
 
-`src/linter/mod.rs::run_all()` instantiates all 19 rules via `LintRule` trait.
+`src/linter/mod.rs::run_all()` instantiates all 21 rules via `LintRule` trait.
 
-Rules in `src/linter/rules/`: `duplicate_ids` (W001), `visibility` (W002), `unused_layers` (W003), `stop_order` (W004), `z_order` (W005), `expression_depth` (W006), `perf_hints` (W007–W019).
+Rules in `src/linter/rules/`: `duplicate_ids` (W001), `visibility` (W002), `unused_layers` (W003), `stop_order` (W004), `z_order` (W005), `expression_depth` (W006), `perf_hints` (W007–W021).
 
 Config in `src/linter/config.rs` — TOML `.stylrc` auto-discovered by walking up the directory tree. Supports per-rule severity overrides (error/warn/off) and `format.indent`.
 
@@ -72,6 +72,8 @@ Requires `serde_json` `preserve_order` feature (in Cargo.toml) so `IndexMap`-bac
 
 ### Validator/linter patterns
 
+- **Untyped root fields**: `fog`, `light`, `terrain`, `transition` in `Style` are `Option<Value>` (not typed structs). Access via `.as_object()?.get("field")`. Skip validation when value is an expression array (first element is a string).
+- **Human renderer is plain text**: `render_human` emits no ANSI color codes. Adding `--no-color` is pointless without first adding colors to the renderer.
 - **Expression skip**: when validating a literal property value, skip if it's an array whose first element is a string — that's an expression. Check `arr.first().map(|v| v.is_string()).unwrap_or(false)`.
 - **Fixable rules**: must be added to BOTH `run_all` and `run_fixes` in `src/linter/mod.rs`. `run_all` detects; `run_fixes` applies.
 - **GeoJSON source** has no `minzoom` field (only `maxzoom`). Don't add minzoom validation there.
