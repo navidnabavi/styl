@@ -31,7 +31,7 @@ A layer has `"visibility": "none"` in its `layout`. May be intentional but worth
 
 ## W003 — Unused source
 
-A source is defined in the top-level `sources` map but not referenced by any layer's `source` field.
+A source is defined in the top-level `sources` map but not referenced by any layer's `source` field or by the root `terrain.source` field.
 
 ---
 
