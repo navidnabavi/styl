@@ -36,7 +36,10 @@ pub fn validate_refs(style: &Style) -> Vec<Diagnostic> {
     // E030: ref must point to an existing layer id
     for (i, layer) in style.layers.iter().enumerate() {
         if let Some(ref_id) = &layer.layer_ref {
-            let exists = style.layers.iter().any(|l| &l.id == ref_id);
+            let exists = style
+                .layers
+                .iter()
+                .any(|l| l.id != layer.id && &l.id == ref_id);
             if !exists {
                 diags.push(
                     Diagnostic::error(
@@ -178,6 +181,15 @@ mod tests {
         }))
         .unwrap();
         assert!(validate_refs(&style).iter().all(|d| d.code != "E030"));
+    }
+
+    #[test]
+    fn test_self_referencing_layer_e030() {
+        let style = parse(
+            r#"{"version":8,"sources":{},"layers":[{"id":"loop","type":"fill","ref":"loop"}]}"#,
+        );
+        let diags = validate_refs(&style);
+        assert!(diags.iter().any(|d| d.code == "E030"));
     }
 
     #[test]
