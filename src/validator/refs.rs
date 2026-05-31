@@ -33,6 +33,26 @@ pub fn validate_refs(style: &Style) -> Vec<Diagnostic> {
         }
     }
 
+    // E030: ref must point to an existing layer id
+    for (i, layer) in style.layers.iter().enumerate() {
+        if let Some(ref_id) = &layer.layer_ref {
+            let exists = style.layers.iter().any(|l| &l.id == ref_id);
+            if !exists {
+                diags.push(
+                    Diagnostic::error(
+                        "E030",
+                        format!("layers[{}].ref", i),
+                        format!(
+                            "layer \"{}\" ref \"{}\" does not match any layer id",
+                            layer.id, ref_id
+                        ),
+                    )
+                    .with_hint("set \"ref\" to the id of an existing layer"),
+                );
+            }
+        }
+    }
+
     // sprite: string must be non-empty; array entries must each have non-empty id and url
     match &style.sprite {
         Some(SpriteValue::String(s)) if s.is_empty() => {
@@ -135,6 +155,29 @@ mod tests {
         let style = parse(r#"{"version":8,"sprite":[],"sources":{},"layers":[]}"#);
         let diags = validate_refs(&style);
         assert!(diags.iter().any(|d| d.code == "E008"));
+    }
+
+    #[test]
+    fn test_ref_to_missing_layer_e030() {
+        let style = parse(
+            r#"{"version":8,"sources":{},"layers":[{"id":"derived","type":"fill","ref":"missing"}]}"#,
+        );
+        let diags = validate_refs(&style);
+        assert!(diags.iter().any(|d| d.code == "E030"));
+    }
+
+    #[test]
+    fn test_ref_to_existing_layer_ok_e030() {
+        let style = serde_json::from_value(serde_json::json!({
+            "version": 8,
+            "sources": {},
+            "layers": [
+                {"id": "base", "type": "fill"},
+                {"id": "derived", "ref": "base"}
+            ]
+        }))
+        .unwrap();
+        assert!(validate_refs(&style).iter().all(|d| d.code != "E030"));
     }
 
     #[test]
