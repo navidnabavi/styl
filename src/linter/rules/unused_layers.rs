@@ -11,11 +11,22 @@ impl LintRule for UnusedSource {
     }
 
     fn check(&self, style: &Style) -> Vec<Diagnostic> {
-        let used: std::collections::HashSet<&str> = style
+        let mut used: std::collections::HashSet<&str> = style
             .layers
             .iter()
             .filter_map(|l| l.source.as_deref())
             .collect();
+
+        // terrain.source is a valid use of a source
+        if let Some(terrain_src) = style
+            .terrain
+            .as_ref()
+            .and_then(|t| t.as_object())
+            .and_then(|o| o.get("source"))
+            .and_then(|s| s.as_str())
+        {
+            used.insert(terrain_src);
+        }
 
         style
             .sources
@@ -54,5 +65,13 @@ mod tests {
         let diags = UnusedSource.check(&style);
         assert_eq!(diags.len(), 1);
         assert_eq!(diags[0].code, "W003");
+    }
+
+    #[test]
+    fn test_terrain_source_not_flagged_unused() {
+        let style = parse(
+            r#"{"version":8,"sources":{"dem":{"type":"raster-dem","url":"x"}},"layers":[],"terrain":{"source":"dem"}}"#,
+        );
+        assert!(UnusedSource.check(&style).is_empty());
     }
 }
