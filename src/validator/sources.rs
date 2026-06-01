@@ -301,11 +301,29 @@ fn validate_coords(coords: &[[f64; 2]; 4], path: &str) -> Vec<Diagnostic> {
 }
 
 fn validate_image(s: &ImageSource, path: &str) -> Vec<Diagnostic> {
-    validate_coords(&s.coordinates, path)
+    let mut diags = Vec::new();
+    if s.url.is_empty() {
+        diags.push(Diagnostic::error(
+            "E032",
+            format!("{}.url", path),
+            "image source must have a non-empty \"url\"",
+        ));
+    }
+    diags.extend(validate_coords(&s.coordinates, path));
+    diags
 }
 
 fn validate_video(s: &VideoSource, path: &str) -> Vec<Diagnostic> {
-    validate_coords(&s.coordinates, path)
+    let mut diags = Vec::new();
+    if s.urls.is_empty() {
+        diags.push(Diagnostic::error(
+            "E032",
+            format!("{}.urls", path),
+            "video source \"urls\" array must not be empty",
+        ));
+    }
+    diags.extend(validate_coords(&s.coordinates, path));
+    diags
 }
 
 #[cfg(test)]
@@ -535,6 +553,28 @@ mod tests {
         assert!(diags
             .iter()
             .any(|d| d.code == "E026" && d.path.contains("coordinates[0][0]")));
+    }
+
+    #[test]
+    fn test_image_source_empty_url_e032() {
+        let style = parse(
+            r#"{"version":8,"sources":{"s":{"type":"image","url":"","coordinates":[[-80,37],[-80,36],[-79,36],[-79,37]]}},"layers":[]}"#,
+        );
+        let diags = validate_sources(&style);
+        assert!(diags
+            .iter()
+            .any(|d| d.code == "E032" && d.path.contains("url")));
+    }
+
+    #[test]
+    fn test_video_source_empty_urls_e032() {
+        let style = parse(
+            r#"{"version":8,"sources":{"s":{"type":"video","urls":[],"coordinates":[[-80,37],[-80,36],[-79,36],[-79,37]]}},"layers":[]}"#,
+        );
+        let diags = validate_sources(&style);
+        assert!(diags
+            .iter()
+            .any(|d| d.code == "E032" && d.path.contains("urls")));
     }
 
     #[test]
