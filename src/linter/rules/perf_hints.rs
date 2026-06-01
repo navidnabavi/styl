@@ -1129,3 +1129,77 @@ mod tests {
             .any(|d| d.code == "W021"));
     }
 }
+
+/// W022: icon-image used but no root sprite defined
+pub struct IconImageWithoutSprite;
+
+impl LintRule for IconImageWithoutSprite {
+    fn code(&self) -> &'static str {
+        "W022"
+    }
+
+    fn check(&self, style: &Style) -> Vec<Diagnostic> {
+        if style.sprite.is_some() {
+            return vec![];
+        }
+        let mut diags = Vec::new();
+        for (i, layer) in style.layers.iter().enumerate() {
+            if let Some(layout) = &layer.layout {
+                if let Some(icon) = layout.get("icon-image") {
+                    // Only warn on literal string values; expression arrays may load sprite dynamically
+                    if icon.is_string() {
+                        diags.push(
+                            Diagnostic::warning(
+                                "W022",
+                                format!("layers[{}].layout.icon-image", i),
+                                format!(
+                                    "layer \"{}\" uses icon-image but no sprite is defined",
+                                    layer.id
+                                ),
+                            )
+                            .with_hint("add a \"sprite\" URL to the root of the style"),
+                        );
+                    }
+                }
+            }
+        }
+        diags
+    }
+}
+
+#[cfg(test)]
+mod w022_tests {
+    use super::*;
+
+    fn parse(json: &str) -> Style {
+        serde_json::from_str(json).unwrap()
+    }
+
+    #[test]
+    fn test_icon_image_without_sprite_w022() {
+        let style = parse(
+            r#"{"version":8,"sources":{"s":{"type":"vector","url":"x"}},"layers":[{"id":"l","type":"symbol","source":"s","source-layer":"x","layout":{"icon-image":"marker"}}]}"#,
+        );
+        assert!(IconImageWithoutSprite
+            .check(&style)
+            .iter()
+            .any(|d| d.code == "W022"));
+    }
+
+    #[test]
+    fn test_icon_image_with_sprite_no_w022() {
+        let style = parse(
+            r#"{"version":8,"sprite":"https://example.com/sprite","sources":{"s":{"type":"vector","url":"x"}},"layers":[{"id":"l","type":"symbol","source":"s","source-layer":"x","layout":{"icon-image":"marker"}}]}"#,
+        );
+        assert!(IconImageWithoutSprite.check(&style).is_empty());
+    }
+
+    #[test]
+    fn test_icon_image_expression_no_w022() {
+        // expression-based icon-image: sprite may be provided dynamically
+        let style = parse(
+            r#"{"version":8,"sources":{"s":{"type":"vector","url":"x"}},"layers":[{"id":"l","type":"symbol","source":"s","source-layer":"x","layout":{"icon-image":["get","icon"]}}]}"#,
+        );
+        assert!(IconImageWithoutSprite.check(&style).is_empty());
+    }
+}
