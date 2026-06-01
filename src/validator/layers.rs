@@ -326,10 +326,9 @@ pub fn validate_layers(style: &Style) -> Vec<Diagnostic> {
                             ),
                         );
                     }
-                    Some(LayerType::Hillshade) | Some(LayerType::ColorRelief)
+                    Some(lt @ (LayerType::Hillshade | LayerType::ColorRelief))
                         if !matches!(source, Source::RasterDem(_)) =>
                     {
-                        let lt = layer.layer_type.as_ref().unwrap();
                         diags.push(
                             Diagnostic::error(
                                 "E031",
@@ -918,5 +917,18 @@ mod tests {
         }"#,
         );
         assert!(validate_layers(&style).iter().all(|d| d.code != "E031"));
+    }
+
+    #[test]
+    fn test_color_relief_layer_with_vector_source_e031() {
+        let style = parse(
+            r#"{
+            "version":8,
+            "sources":{"s":{"type":"vector","url":"x"}},
+            "layers":[{"id":"cr","type":"color-relief","source":"s","source-layer":"x"}]
+        }"#,
+        );
+        let diags = validate_layers(&style);
+        assert!(diags.iter().any(|d| d.code == "E031"));
     }
 }
