@@ -375,3 +375,53 @@ The root `fog` object has a property with an invalid value. `fog` is MapLibre-on
 ```
 
 Expression values (arrays starting with an operator string) are not validated as literals.
+
+---
+
+## E030 — Invalid layer ref
+
+A layer's `ref` field points to an id that does not exist in the `layers` array, or points to itself.
+
+```json
+{
+  "layers": [
+    { "id": "derived", "type": "fill", "ref": "missing" }
+  ]
+}
+```
+
+Fix: set `"ref"` to the `id` of an existing layer (not the layer's own id).
+
+---
+
+## E031 — Source type mismatch
+
+A layer type requires a specific source kind, but the referenced source is a different type.
+
+| Layer type | Required source type |
+|------------|---------------------|
+| `raster` | `raster` |
+| `hillshade` | `raster-dem` |
+| `color-relief` | `raster-dem` |
+
+```json
+{
+  "sources": { "roads": { "type": "vector", "url": "..." } },
+  "layers": [{ "id": "shading", "type": "hillshade", "source": "roads" }]
+}
+```
+
+Fix: change the source to the correct type or change the layer type.
+
+---
+
+## E032 — Image/video source missing content
+
+An `image` source has an empty `url`, or a `video` source has an empty `urls` array.
+
+```json
+{ "type": "image", "url": "", "coordinates": [...] }
+{ "type": "video", "urls": [], "coordinates": [...] }
+```
+
+Fix: provide a non-empty URL string for `image`, or at least one URL in the `urls` array for `video`.

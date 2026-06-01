@@ -238,6 +238,22 @@ Fix: add `"range": [start_distance, end_distance]` to the `fog` object.
 
 ---
 
+## W022 — icon-image used without sprite
+
+A layer sets `icon-image` with a literal string value but no root `sprite` is defined. Icons will silently fail to render at runtime.
+
+```json
+{
+  "layers": [{ "id": "poi", "type": "symbol", "layout": { "icon-image": "marker" } }]
+}
+```
+
+Fix: add a `"sprite"` URL to the root of the style.
+
+> Expression-based `icon-image` values (e.g. `["get", "icon"]`) do not trigger this warning.
+
+---
+
 ## Configuring Rules
 
 Severity can be overridden per-rule in `.stylrc`:
