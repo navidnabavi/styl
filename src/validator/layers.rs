@@ -307,6 +307,47 @@ pub fn validate_layers(style: &Style) -> Vec<Diagnostic> {
                         ),
                     );
                 }
+
+                // E031: layer type requires a specific source kind
+                match &layer.layer_type {
+                    Some(LayerType::Raster) if !matches!(source, Source::Raster(_)) => {
+                        diags.push(
+                            Diagnostic::error(
+                                "E031",
+                                format!("{}.source", path),
+                                format!(
+                                    "raster layer \"{}\" requires a raster source, got \"{}\"",
+                                    layer.id,
+                                    source.source_type()
+                                ),
+                            )
+                            .with_hint(
+                                "change the source to type \"raster\" or change the layer type",
+                            ),
+                        );
+                    }
+                    Some(LayerType::Hillshade) | Some(LayerType::ColorRelief)
+                        if !matches!(source, Source::RasterDem(_)) =>
+                    {
+                        let lt = layer.layer_type.as_ref().unwrap();
+                        diags.push(
+                            Diagnostic::error(
+                                "E031",
+                                format!("{}.source", path),
+                                format!(
+                                    "{} layer \"{}\" requires a raster-dem source, got \"{}\"",
+                                    lt,
+                                    layer.id,
+                                    source.source_type()
+                                ),
+                            )
+                            .with_hint(
+                                "change the source to type \"raster-dem\" or change the layer type",
+                            ),
+                        );
+                    }
+                    _ => {}
+                }
             }
         }
 
@@ -815,5 +856,67 @@ mod tests {
             "layers": [{"id": "orphan", "type": "fill", "ref": "missing"}]
         }));
         assert!(!validate_layers(&style).iter().any(|d| d.code == "E018"));
+    }
+
+    #[test]
+    fn test_raster_layer_with_vector_source_e031() {
+        let style = parse(
+            r#"{
+            "version":8,
+            "sources":{"s":{"type":"vector","url":"x"}},
+            "layers":[{"id":"r","type":"raster","source":"s","source-layer":"x"}]
+        }"#,
+        );
+        let diags = validate_layers(&style);
+        assert!(diags.iter().any(|d| d.code == "E031"));
+    }
+
+    #[test]
+    fn test_raster_layer_with_raster_source_ok_e031() {
+        let style = parse(
+            r#"{
+            "version":8,
+            "sources":{"s":{"type":"raster","url":"x"}},
+            "layers":[{"id":"r","type":"raster","source":"s"}]
+        }"#,
+        );
+        assert!(validate_layers(&style).iter().all(|d| d.code != "E031"));
+    }
+
+    #[test]
+    fn test_hillshade_layer_with_vector_source_e031() {
+        let style = parse(
+            r#"{
+            "version":8,
+            "sources":{"s":{"type":"vector","url":"x"}},
+            "layers":[{"id":"h","type":"hillshade","source":"s","source-layer":"x"}]
+        }"#,
+        );
+        let diags = validate_layers(&style);
+        assert!(diags.iter().any(|d| d.code == "E031"));
+    }
+
+    #[test]
+    fn test_hillshade_layer_with_raster_dem_source_ok_e031() {
+        let style = parse(
+            r#"{
+            "version":8,
+            "sources":{"s":{"type":"raster-dem","url":"x"}},
+            "layers":[{"id":"h","type":"hillshade","source":"s"}]
+        }"#,
+        );
+        assert!(validate_layers(&style).iter().all(|d| d.code != "E031"));
+    }
+
+    #[test]
+    fn test_color_relief_layer_with_raster_dem_source_ok_e031() {
+        let style = parse(
+            r#"{
+            "version":8,
+            "sources":{"s":{"type":"raster-dem","url":"x"}},
+            "layers":[{"id":"cr","type":"color-relief","source":"s"}]
+        }"#,
+        );
+        assert!(validate_layers(&style).iter().all(|d| d.code != "E031"));
     }
 }
