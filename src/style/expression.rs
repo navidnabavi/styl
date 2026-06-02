@@ -469,6 +469,12 @@ fn validate_operator(op: &str, args: &[Value], path: &str, depth: usize) -> Vec<
     for (i, arg) in args[1..].iter().enumerate() {
         // Only recurse into array sub-expressions
         if arg.is_array() || arg.is_object() {
+            // For "match", odd positions in args[1..] (i=1,3,5,...) are label arrays —
+            // arrays of scalar values to match against, not sub-expressions.
+            // Skip them, but always validate the final fallback (last element).
+            if op == "match" && i % 2 == 1 && i + 2 < args.len() {
+                continue;
+            }
             let child_path = format!("{}/{}", path, i + 1);
             diags.extend(validate_expression(arg, &child_path, depth + 1));
         }
