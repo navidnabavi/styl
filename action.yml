@@ -1,4 +1,4 @@
-name: 'styl'
+name: 'styl-check'
 description: 'Linter, validator, and formatter for MapLibre GL / Mapbox GL style JSON'
 author: 'Navid Nabavi'
 inputs:
