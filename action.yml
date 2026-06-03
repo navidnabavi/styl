@@ -1,6 +1,11 @@
 name: 'styl-check'
 description: 'Linter, validator, and formatter for MapLibre GL / Mapbox GL style JSON'
 author: 'Navid Nabavi'
+
+branding:
+  icon: 'check-circle'
+  color: 'blue'
+
 inputs:
   command:
     description: 'The styl command to run (check, validate, lint, fmt)'
