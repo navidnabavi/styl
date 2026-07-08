@@ -69,8 +69,11 @@ Deeply nested expressions (> 10 levels) trigger [W006](linter.md#w006--deep-expr
 | `downcase` | 1 | Lowercase string |
 | `upcase` | 1 | Uppercase string |
 | `string` | 1–2 | Assert/convert to string |
+| `split` | 2 | Split string by separator |
+| `join` | 2 | Join array elements with separator |
 | `number-format` | 2 | Format number as string |
 | `is-supported-script` | 1 | Check script support |
+| `resolved-locale` | 1 | Resolved locale from collator |
 
 ---
 
@@ -85,6 +88,7 @@ Deeply nested expressions (> 10 levels) trigger [W006](linter.md#w006--deep-expr
 | `index-of` | 2–3 | Index of value in array/string |
 | `slice` | 2–3 | Array/string slice |
 | `length` | 1 | Array or string length |
+| `global-state` | 1 | Global state property value |
 | `properties` | 0 | All feature properties |
 | `feature-state` | 1 | Feature state value |
 | `geometry-type` | 0 | Feature geometry type |
@@ -116,8 +120,8 @@ Deeply nested expressions (> 10 levels) trigger [W006](linter.md#w006--deep-expr
 |----------|------|-------------|
 | `rgb` | 3 | Create color from RGB values (0–255) |
 | `rgba` | 4 | Create color from RGBA values |
-| `hsl` | 3 | Create color from HSL values |
-| `hsla` | 4 | Create color from HSLA values |
+| `hsl` | 3 | Create color from HSL values _(Mapbox-only — triggers E023 under `--spec maplibre`/`--spec both`)_ |
+| `hsla` | 4 | Create color from HSLA values _(Mapbox-only — triggers E023 under `--spec maplibre`/`--spec both`)_ |
 
 ---
 
@@ -147,6 +151,8 @@ Deeply nested expressions (> 10 levels) trigger [W006](linter.md#w006--deep-expr
 | `zoom` | 0 | Current zoom level |
 | `pitch` | 0 | Current map pitch |
 | `distance-from-center` | 0 | Distance from map center |
+| `heatmap-density` | 0 | Kernel density estimation (heatmap layers only) |
+| `elevation` | 0 | Elevation from raster-dem (color-relief layers only) |
 
 ---
 
@@ -166,7 +172,6 @@ Deeply nested expressions (> 10 levels) trigger [W006](linter.md#w006--deep-expr
 | Operator | Args | Description |
 |----------|------|-------------|
 | `image` | 1 | Image reference |
-| `resolved-image` | 1 | Resolved image reference |
 | `collator` | 1 | Locale-aware string collator |
 | `format` | 1+ | Rich text formatting |
 

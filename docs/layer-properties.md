@@ -28,6 +28,7 @@ All layer types support `"visibility"` in `layout`.
 - `fill-translate`
 - `fill-translate-anchor`
 - `fill-pattern`
+- `fill-layer-opacity`
 
 **Layout:**
 - `visibility`
@@ -66,6 +67,7 @@ All layer types support `"visibility"` in `layout`.
 - `line-dasharray`
 - `line-pattern`
 - `line-gradient`
+- `line-layer-opacity`
 
 **Layout:**
 - `visibility`
@@ -116,6 +118,7 @@ All layer types support `"visibility"` in `layout`.
 - `icon-offset`
 - `icon-anchor`
 - `icon-pitch-alignment`
+- `icon-overlap`
 - `text-pitch-alignment`
 - `text-rotation-alignment`
 - `text-field`
@@ -127,6 +130,7 @@ All layer types support `"visibility"` in `layout`.
 - `text-justify`
 - `text-radial-offset`
 - `text-variable-anchor`
+- `text-variable-anchor-offset`
 - `text-anchor`
 - `text-max-angle`
 - `text-writing-mode`
@@ -138,6 +142,7 @@ All layer types support `"visibility"` in `layout`.
 - `text-allow-overlap`
 - `text-ignore-placement`
 - `text-optional`
+- `text-overlap`
 
 ---
 
@@ -202,6 +207,9 @@ All layer types support `"visibility"` in `layout`.
 - `hillshade-shadow-color`
 - `hillshade-highlight-color`
 - `hillshade-accent-color`
+- `hillshade-illumination-altitude`
+- `hillshade-method`
+- `resampling`
 
 **Layout:**
 - `visibility`
@@ -229,8 +237,9 @@ All layer types support `"visibility"` in `layout`.
 ## color-relief
 
 **Paint:**
-- `color-relief-color-range`
+- `color-relief-color`
 - `color-relief-opacity`
+- `resampling`
 
 **Layout:**
 - `visibility`

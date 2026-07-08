@@ -36,7 +36,7 @@ fn run(cli: &Cli) -> i32 {
         }
     };
 
-    let diagnostics: Vec<diagnostic::Diagnostic> = match &cli.command {
+    let mut diagnostics: Vec<diagnostic::Diagnostic> = match &cli.command {
         Command::Check { .. } => {
             let style: Style = match serde_json::from_value(value.clone()) {
                 Ok(s) => s,
@@ -106,6 +106,8 @@ fn run(cli: &Cli) -> i32 {
             return 0;
         }
     };
+
+    config.apply_severity(&mut diagnostics);
 
     if !cli.quiet {
         let output = match cli.format {

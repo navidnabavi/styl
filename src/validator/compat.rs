@@ -1,6 +1,6 @@
 use crate::diagnostic::Diagnostic;
 use crate::style::layer::LayerType;
-use crate::style::spec::{SpecAffinity, MAPLIBRE_ONLY_EXPRESSIONS};
+use crate::style::spec::{SpecAffinity, MAPBOX_ONLY_EXPRESSIONS, MAPLIBRE_ONLY_EXPRESSIONS};
 use crate::style::Style;
 use crate::validator::Validator;
 
@@ -9,6 +9,7 @@ pub struct ColorReliefCompatValidator;
 pub struct TerrainCompatValidator;
 pub struct FogCompatValidator;
 pub struct ExpressionCompatValidator;
+pub struct MapboxOnlyExpressionCompatValidator;
 
 impl Validator for SkyCompatValidator {
     fn spec_affinity(&self) -> Option<SpecAffinity> {
@@ -93,45 +94,90 @@ impl Validator for ExpressionCompatValidator {
         Some(SpecAffinity::MaplibreOnly)
     }
     fn validate(&self, style: &Style) -> Vec<Diagnostic> {
-        let mut diags = Vec::new();
-        for (i, layer) in style.layers.iter().enumerate() {
-            let base = format!("layers[{}]", i);
-            if let Some(paint) = &layer.paint {
-                diags.extend(check_expr_compat(paint, &format!("{}.paint", base)));
-            }
-            if let Some(layout) = &layer.layout {
-                diags.extend(check_expr_compat(layout, &format!("{}.layout", base)));
-            }
-        }
-        diags
+        check_style_expressions(style, MAPLIBRE_ONLY_EXPRESSIONS, "Mapbox")
     }
 }
 
-fn check_expr_compat(value: &serde_json::Value, path: &str) -> Vec<Diagnostic> {
+impl Validator for MapboxOnlyExpressionCompatValidator {
+    fn spec_affinity(&self) -> Option<SpecAffinity> {
+        Some(SpecAffinity::MapboxOnly)
+    }
+    fn validate(&self, style: &Style) -> Vec<Diagnostic> {
+        check_style_expressions(style, MAPBOX_ONLY_EXPRESSIONS, "MapLibre")
+    }
+}
+
+fn check_style_expressions(style: &Style, forbidden: &[&str], spec_name: &str) -> Vec<Diagnostic> {
+    let mut diags = Vec::new();
+    for (i, layer) in style.layers.iter().enumerate() {
+        let base = format!("layers[{}]", i);
+        if let Some(paint) = &layer.paint {
+            diags.extend(check_expr_compat(
+                paint,
+                &format!("{}.paint", base),
+                forbidden,
+                spec_name,
+            ));
+        }
+        if let Some(layout) = &layer.layout {
+            diags.extend(check_expr_compat(
+                layout,
+                &format!("{}.layout", base),
+                forbidden,
+                spec_name,
+            ));
+        }
+    }
+    diags
+}
+
+fn check_expr_compat(
+    value: &serde_json::Value,
+    path: &str,
+    forbidden: &[&str],
+    spec_name: &str,
+) -> Vec<Diagnostic> {
     let mut diags = Vec::new();
     match value {
         serde_json::Value::Array(arr) if !arr.is_empty() && arr[0].is_string() => {
             let op = arr[0].as_str().unwrap();
-            if MAPLIBRE_ONLY_EXPRESSIONS.contains(&op) {
+            if forbidden.contains(&op) {
                 diags.push(
                     Diagnostic::error(
                         "E023",
                         path,
                         format!(
-                            "expression operator \"{}\" is not supported in Mapbox spec",
-                            op
+                            "expression operator \"{}\" is not supported in {} spec",
+                            op, spec_name
                         ),
                     )
-                    .with_hint("remove this expression or switch to --spec maplibre"),
+                    .with_hint(format!(
+                        "remove this expression or switch to --spec {}",
+                        if spec_name == "Mapbox" {
+                            "maplibre"
+                        } else {
+                            "mapbox"
+                        }
+                    )),
                 );
             }
             for (j, arg) in arr[1..].iter().enumerate() {
-                diags.extend(check_expr_compat(arg, &format!("{}[{}]", path, j + 1)));
+                diags.extend(check_expr_compat(
+                    arg,
+                    &format!("{}[{}]", path, j + 1),
+                    forbidden,
+                    spec_name,
+                ));
             }
         }
         serde_json::Value::Object(map) => {
             for (k, v) in map {
-                diags.extend(check_expr_compat(v, &format!("{}.{}", path, k)));
+                diags.extend(check_expr_compat(
+                    v,
+                    &format!("{}.{}", path, k),
+                    forbidden,
+                    spec_name,
+                ));
             }
         }
         _ => {}
@@ -248,5 +294,80 @@ mod tests {
         }"#,
         );
         assert!(ExpressionCompatValidator.validate(&style).is_empty());
+    }
+
+    // MapboxOnlyExpressionCompatValidator
+    #[test]
+    fn mapbox_only_expression_compat_emits_e023_for_hsl() {
+        let style = parse(
+            r#"{
+            "version":8,
+            "sources":{},
+            "layers":[{
+                "id":"f",
+                "type":"fill",
+                "paint":{"fill-color":["hsl",0,100,50]}
+            }]
+        }"#,
+        );
+        let diags = MapboxOnlyExpressionCompatValidator.validate(&style);
+        assert!(diags
+            .iter()
+            .any(|d| d.code == "E023" && d.message.contains("hsl")));
+    }
+
+    #[test]
+    fn mapbox_only_expression_compat_emits_e023_for_hsla() {
+        let style = parse(
+            r#"{
+            "version":8,
+            "sources":{},
+            "layers":[{
+                "id":"f",
+                "type":"fill",
+                "paint":{"fill-color":["hsla",0,100,50,1]}
+            }]
+        }"#,
+        );
+        let diags = MapboxOnlyExpressionCompatValidator.validate(&style);
+        assert!(diags
+            .iter()
+            .any(|d| d.code == "E023" && d.message.contains("hsla")));
+    }
+
+    #[test]
+    fn mapbox_only_expression_compat_clean_for_rgb() {
+        let style = parse(
+            r#"{
+            "version":8,
+            "sources":{},
+            "layers":[{
+                "id":"f",
+                "type":"fill",
+                "paint":{"fill-color":["rgb",255,0,0]}
+            }]
+        }"#,
+        );
+        assert!(MapboxOnlyExpressionCompatValidator
+            .validate(&style)
+            .is_empty());
+    }
+
+    #[test]
+    fn mapbox_only_expression_compat_clean_for_standard() {
+        let style = parse(
+            r#"{
+            "version":8,
+            "sources":{},
+            "layers":[{
+                "id":"c",
+                "type":"circle",
+                "paint":{"circle-radius":["get","zoom"]}
+            }]
+        }"#,
+        );
+        assert!(MapboxOnlyExpressionCompatValidator
+            .validate(&style)
+            .is_empty());
     }
 }

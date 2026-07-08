@@ -32,6 +32,7 @@ pub fn get_prop_type(name: &str) -> Option<PropType> {
         "fill-translate" => Some(PropType::Array),
         "fill-translate-anchor" => Some(PropType::Enum(&["map", "viewport"])),
         "fill-pattern" => Some(PropType::StringType),
+        "fill-layer-opacity" => Some(PropType::Number { min: 0.0, max: 1.0 }),
 
         // --- Fill layout ---
         "fill-sort-key" => Some(PropType::Any),
@@ -65,6 +66,7 @@ pub fn get_prop_type(name: &str) -> Option<PropType> {
         "line-dasharray" => Some(PropType::Array),
         "line-pattern" => Some(PropType::StringType),
         "line-gradient" => Some(PropType::Any),
+        "line-layer-opacity" => Some(PropType::Number { min: 0.0, max: 1.0 }),
 
         // --- Symbol layout ---
         "symbol-placement" => Some(PropType::Enum(&["point", "line", "line-center"])),
@@ -97,6 +99,7 @@ pub fn get_prop_type(name: &str) -> Option<PropType> {
             "bottom-right",
         ])),
         "icon-pitch-alignment" => Some(PropType::Enum(&["map", "viewport", "auto"])),
+        "icon-overlap" => Some(PropType::Enum(&["never", "always", "cooperative"])),
 
         "text-pitch-alignment" => Some(PropType::Enum(&["map", "viewport", "auto"])),
         "text-rotation-alignment" => Some(PropType::Enum(&["map", "viewport", "auto"])),
@@ -109,6 +112,7 @@ pub fn get_prop_type(name: &str) -> Option<PropType> {
         "text-justify" => Some(PropType::Enum(&["auto", "left", "center", "right"])),
         "text-radial-offset" => Some(PropType::Any),
         "text-variable-anchor" => Some(PropType::Array),
+        "text-variable-anchor-offset" => Some(PropType::Array),
         "text-anchor" => Some(PropType::Enum(&[
             "center",
             "left",
@@ -130,6 +134,7 @@ pub fn get_prop_type(name: &str) -> Option<PropType> {
         "text-allow-overlap" => Some(PropType::Boolean),
         "text-ignore-placement" => Some(PropType::Boolean),
         "text-optional" => Some(PropType::Boolean),
+        "text-overlap" => Some(PropType::Enum(&["never", "always", "cooperative"])),
 
         // --- Symbol paint ---
         "icon-opacity" => Some(PropType::Number { min: 0.0, max: 1.0 }),
@@ -196,6 +201,12 @@ pub fn get_prop_type(name: &str) -> Option<PropType> {
         "hillshade-shadow-color" => Some(PropType::Color),
         "hillshade-highlight-color" => Some(PropType::Color),
         "hillshade-accent-color" => Some(PropType::Color),
+        "hillshade-illumination-altitude" => Some(PropType::Number {
+            min: 0.0,
+            max: 90.0,
+        }),
+        "hillshade-method" => Some(PropType::StringType),
+        "resampling" => Some(PropType::Enum(&["linear", "nearest"])),
 
         // --- Sky paint ---
         "sky-type" => Some(PropType::Enum(&["gradient", "atmosphere"])),
@@ -212,7 +223,7 @@ pub fn get_prop_type(name: &str) -> Option<PropType> {
         "sky-opacity" => Some(PropType::Number { min: 0.0, max: 1.0 }),
 
         // --- Color-relief paint ---
-        "color-relief-color-range" => Some(PropType::Array),
+        "color-relief-color" => Some(PropType::Array),
         "color-relief-opacity" => Some(PropType::Number { min: 0.0, max: 1.0 }),
 
         _ => None,
@@ -461,13 +472,103 @@ mod tests {
     }
 
     #[test]
-    fn test_expression_skips_literal_validation() {
+    fn test_fill_layer_opacity_out_of_range() {
         let diags = validate_prop_value(
-            "fill-opacity",
-            &json!(["get", "opacity"]),
-            "layers[0].paint.fill-opacity",
+            "fill-layer-opacity",
+            &json!(1.5),
+            "layers[0].paint.fill-layer-opacity",
         );
-        assert!(!diags.iter().any(|d| d.code == "E018"));
+        assert!(diags.iter().any(|d| d.code == "E018"));
+    }
+
+    #[test]
+    fn test_line_layer_opacity_out_of_range() {
+        let diags = validate_prop_value(
+            "line-layer-opacity",
+            &json!(1.5),
+            "layers[0].paint.line-layer-opacity",
+        );
+        assert!(diags.iter().any(|d| d.code == "E018"));
+    }
+
+    #[test]
+    fn test_icon_overlap_invalid_enum() {
+        let diags = validate_prop_value(
+            "icon-overlap",
+            &json!("bad"),
+            "layers[0].layout.icon-overlap",
+        );
+        assert!(diags.iter().any(|d| d.code == "E018"));
+    }
+
+    #[test]
+    fn test_text_overlap_invalid_enum() {
+        let diags = validate_prop_value(
+            "text-overlap",
+            &json!("bad"),
+            "layers[0].layout.text-overlap",
+        );
+        assert!(diags.iter().any(|d| d.code == "E018"));
+    }
+
+    #[test]
+    fn test_text_variable_anchor_offset_not_array() {
+        let diags = validate_prop_value(
+            "text-variable-anchor-offset",
+            &json!("x"),
+            "layers[0].layout.text-variable-anchor-offset",
+        );
+        assert!(diags.iter().any(|d| d.code == "E018"));
+    }
+
+    #[test]
+    fn test_hillshade_altitude_out_of_range() {
+        let diags = validate_prop_value(
+            "hillshade-illumination-altitude",
+            &json!(100.0),
+            "layers[0].paint.hillshade-illumination-altitude",
+        );
+        assert!(diags.iter().any(|d| d.code == "E018"));
+    }
+
+    #[test]
+    fn test_hillshade_method_not_string() {
+        let diags = validate_prop_value(
+            "hillshade-method",
+            &json!(42),
+            "layers[0].paint.hillshade-method",
+        );
+        assert!(diags.iter().any(|d| d.code == "E018"));
+    }
+
+    #[test]
+    fn test_resampling_invalid_enum() {
+        let diags = validate_prop_value(
+            "resampling",
+            &json!("bilinear"),
+            "layers[0].paint.resampling",
+        );
+        assert!(diags.iter().any(|d| d.code == "E018"));
+    }
+
+    #[test]
+    fn test_color_relief_color_not_array() {
+        let diags = validate_prop_value(
+            "color-relief-color",
+            &json!("x"),
+            "layers[0].paint.color-relief-color",
+        );
+        assert!(diags.iter().any(|d| d.code == "E018"));
+    }
+
+    #[test]
+    fn test_color_relief_color_range_unknown_no_diag() {
+        let diags = validate_prop_value(
+            "color-relief-color-range",
+            &json!("x"),
+            "layers[0].paint.color-relief-color-range",
+        );
+        assert!(diags.is_empty());
     }
 
     #[test]
@@ -556,7 +657,6 @@ mod tests {
 
     #[test]
     fn test_array_string_first_element_not_expression() {
-        // Array-typed props with string-first arrays must NOT be routed to validate_expression
         let diags = validate_prop_value(
             "text-variable-anchor",
             &json!(["center", "left"]),

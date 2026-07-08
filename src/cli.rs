@@ -3,8 +3,8 @@ use std::path::PathBuf;
 
 #[derive(Parser)]
 #[command(
-    name = "mapbox-style-tool",
-    about = "Lint, validate, and format Mapbox/MapLibre GL Style JSON"
+    name = "styl",
+    about = "Linter, validator, and formatter for MapLibre GL / Mapbox GL style JSON"
 )]
 pub struct Cli {
     #[command(subcommand)]

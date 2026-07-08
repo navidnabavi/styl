@@ -27,6 +27,30 @@ pub struct Config {
     pub format: FormatConfig,
 }
 
+impl Config {
+    /// Apply severity overrides to diagnostics. Rules mapped to "off" are removed,
+    /// "error" overrides upgrade warnings/info to errors, "warn" downgrades errors to warnings.
+    pub fn apply_severity(&self, diags: &mut Vec<crate::diagnostic::Diagnostic>) {
+        if self.rules.is_empty() {
+            return;
+        }
+        diags.retain(|d| {
+            self.rules
+                .get(d.code)
+                .is_none_or(|s| *s != RuleSeverity::Off)
+        });
+        for d in diags.iter_mut() {
+            if let Some(severity) = self.rules.get(d.code) {
+                match severity {
+                    RuleSeverity::Error => d.severity = crate::diagnostic::Severity::Error,
+                    RuleSeverity::Warn => d.severity = crate::diagnostic::Severity::Warning,
+                    RuleSeverity::Off => {} // already filtered out above
+                }
+            }
+        }
+    }
+}
+
 #[derive(Debug, Clone, Deserialize)]
 pub struct FormatConfig {
     #[serde(default = "default_indent")]
@@ -125,5 +149,66 @@ indent = 4
         std::fs::create_dir_all(&sub).unwrap();
         let found = discover_config(&sub);
         assert_eq!(found, Some(config_path));
+    }
+
+    use crate::diagnostic::{Diagnostic, Severity};
+
+    #[test]
+    fn test_apply_severity_upgrades_to_error() {
+        let config = Config {
+            rules: {
+                let mut m = HashMap::new();
+                m.insert("W001".to_string(), RuleSeverity::Error);
+                m
+            },
+            ..Config::default()
+        };
+        let mut diags = vec![Diagnostic::warning("W001", "p", "duplicate")];
+        config.apply_severity(&mut diags);
+        assert_eq!(diags.len(), 1);
+        assert_eq!(diags[0].severity, Severity::Error);
+    }
+
+    #[test]
+    fn test_apply_severity_off_removes() {
+        let config = Config {
+            rules: {
+                let mut m = HashMap::new();
+                m.insert("W001".to_string(), RuleSeverity::Off);
+                m
+            },
+            ..Config::default()
+        };
+        let mut diags = vec![Diagnostic::warning("W001", "p", "duplicate")];
+        config.apply_severity(&mut diags);
+        assert!(diags.is_empty());
+    }
+
+    #[test]
+    fn test_apply_severity_warn_downgrades() {
+        let config = Config {
+            rules: {
+                let mut m = HashMap::new();
+                m.insert("E001".to_string(), RuleSeverity::Warn);
+                m
+            },
+            ..Config::default()
+        };
+        let mut diags = vec![Diagnostic::error("E001", "p", "wrong version")];
+        config.apply_severity(&mut diags);
+        assert_eq!(diags.len(), 1);
+        assert_eq!(diags[0].severity, Severity::Warning);
+    }
+
+    #[test]
+    fn test_apply_severity_empty_rules_noop() {
+        let config = Config::default();
+        let mut diags = vec![
+            Diagnostic::warning("W001", "p", "dup"),
+            Diagnostic::error("E001", "p", "version"),
+        ];
+        let original = diags.clone();
+        config.apply_severity(&mut diags);
+        assert_eq!(diags.len(), original.len());
     }
 }

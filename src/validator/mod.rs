@@ -31,6 +31,7 @@ pub fn run_all(style: &Style, spec: &Spec) -> Vec<Diagnostic> {
         Box::new(compat::TerrainCompatValidator),
         Box::new(compat::FogCompatValidator),
         Box::new(compat::ExpressionCompatValidator),
+        Box::new(compat::MapboxOnlyExpressionCompatValidator),
     ];
 
     validators

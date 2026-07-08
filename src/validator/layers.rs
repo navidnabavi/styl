@@ -35,6 +35,7 @@ fn valid_paint_props(lt: Option<&LayerType>) -> &'static [&'static str] {
             "fill-translate",
             "fill-translate-anchor",
             "fill-pattern",
+            "fill-layer-opacity",
         ],
         LayerType::FillExtrusion => &[
             "fill-extrusion-opacity",
@@ -58,6 +59,7 @@ fn valid_paint_props(lt: Option<&LayerType>) -> &'static [&'static str] {
             "line-dasharray",
             "line-pattern",
             "line-gradient",
+            "line-layer-opacity",
         ],
         LayerType::Symbol => &[
             "icon-opacity",
@@ -112,6 +114,9 @@ fn valid_paint_props(lt: Option<&LayerType>) -> &'static [&'static str] {
             "hillshade-shadow-color",
             "hillshade-highlight-color",
             "hillshade-accent-color",
+            "hillshade-illumination-altitude",
+            "hillshade-method",
+            "resampling",
         ],
         LayerType::Sky => &[
             "sky-type",
@@ -124,7 +129,7 @@ fn valid_paint_props(lt: Option<&LayerType>) -> &'static [&'static str] {
             "sky-atmosphere-color",
             "sky-opacity",
         ],
-        LayerType::ColorRelief => &["color-relief-color-range", "color-relief-opacity"],
+        LayerType::ColorRelief => &["color-relief-color", "color-relief-opacity", "resampling"],
     }
 }
 
@@ -173,6 +178,7 @@ fn valid_layout_props(lt: Option<&LayerType>) -> &'static [&'static str] {
             "icon-offset",
             "icon-anchor",
             "icon-pitch-alignment",
+            "icon-overlap",
             "text-pitch-alignment",
             "text-rotation-alignment",
             "text-field",
@@ -184,6 +190,7 @@ fn valid_layout_props(lt: Option<&LayerType>) -> &'static [&'static str] {
             "text-justify",
             "text-radial-offset",
             "text-variable-anchor",
+            "text-variable-anchor-offset",
             "text-anchor",
             "text-max-angle",
             "text-writing-mode",
@@ -195,6 +202,7 @@ fn valid_layout_props(lt: Option<&LayerType>) -> &'static [&'static str] {
             "text-allow-overlap",
             "text-ignore-placement",
             "text-optional",
+            "text-overlap",
         ],
     }
 }
@@ -930,5 +938,83 @@ mod tests {
         );
         let diags = validate_layers(&style);
         assert!(diags.iter().any(|d| d.code == "E031"));
+    }
+
+    #[test]
+    fn test_fill_layer_opacity_valid_prop() {
+        let style = parse(
+            r#"{
+            "version":8,
+            "sources":{"s":{"type":"vector","url":"x"}},
+            "layers":[{"id":"l","type":"fill","source":"s","source-layer":"x","paint":{"fill-layer-opacity":0.5}}]
+        }"#,
+        );
+        let diags = validate_layers(&style);
+        assert!(!diags.iter().any(|d| d.code == "E006"));
+    }
+
+    #[test]
+    fn test_line_layer_opacity_valid_prop() {
+        let style = parse(
+            r#"{
+            "version":8,
+            "sources":{"s":{"type":"vector","url":"x"}},
+            "layers":[{"id":"l","type":"line","source":"s","source-layer":"x","paint":{"line-layer-opacity":0.5}}]
+        }"#,
+        );
+        let diags = validate_layers(&style);
+        assert!(!diags.iter().any(|d| d.code == "E006"));
+    }
+
+    #[test]
+    fn test_symbol_overlap_valid_layout() {
+        let style = parse(
+            r#"{
+            "version":8,
+            "sources":{"s":{"type":"vector","url":"x"}},
+            "layers":[{"id":"l","type":"symbol","source":"s","source-layer":"x","layout":{"icon-overlap":"never","text-overlap":"always"}}]
+        }"#,
+        );
+        let diags = validate_layers(&style);
+        assert!(!diags.iter().any(|d| d.code == "E007"));
+    }
+
+    #[test]
+    fn test_symbol_variable_anchor_offset_valid() {
+        let style = parse(
+            r#"{
+            "version":8,
+            "sources":{"s":{"type":"vector","url":"x"}},
+            "layers":[{"id":"l","type":"symbol","source":"s","source-layer":"x","layout":{"text-variable-anchor-offset":[0.5,0.5]}}]
+        }"#,
+        );
+        let diags = validate_layers(&style);
+        assert!(!diags.iter().any(|d| d.code == "E007"));
+    }
+
+    #[test]
+    fn test_hillshade_new_paint_props_valid() {
+        let style = parse(
+            r#"{
+            "version":8,
+            "sources":{"s":{"type":"raster-dem","url":"x"}},
+            "layers":[{"id":"h","type":"hillshade","source":"s","paint":{"hillshade-illumination-altitude":45,"hillshade-method":"neutral","resampling":"nearest"}}]
+        }"#,
+        );
+        let diags = validate_layers(&style);
+        assert!(!diags.iter().any(|d| d.code == "E006"));
+    }
+
+    #[test]
+    fn test_color_relief_new_paint_props_valid() {
+        let style = parse(
+            r#"{
+            "version":8,
+            "sources":{"s":{"type":"raster-dem","url":"x"}},
+            "layers":[{"id":"cr","type":"color-relief","source":"s","paint":{"color-relief-color":["step",["elevation"],"white",0,"black",1000,"red"],"resampling":"linear","color-relief-opacity":0.8}}]
+        }"#,
+        );
+        let diags = validate_layers(&style);
+        assert!(!diags.iter().any(|d| d.code == "E006"));
     }
 }

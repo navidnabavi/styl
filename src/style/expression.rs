@@ -33,20 +33,11 @@ impl std::fmt::Display for ExprType {
 
 /// Validate an expression value, returning diagnostics.
 /// `path` is the JSON pointer path to this expression (for diagnostic paths).
-/// `depth` tracks recursion depth for W006.
+/// `depth` tracks recursion depth to guard against infinite recursion.
 pub fn validate_expression(value: &Value, path: &str, depth: usize) -> Vec<Diagnostic> {
     let mut diags = Vec::new();
 
-    if depth > 10 {
-        diags.push(
-            Diagnostic::warning(
-                "W006",
-                path,
-                "expression depth exceeds 10 (performance impact)",
-            )
-            .with_hint("simplify nested expressions or use intermediate variables with 'let'"),
-        );
-        // Don't recurse further — avoid noise
+    if depth > 20 {
         return diags;
     }
 
@@ -117,6 +108,15 @@ fn validate_operator(op: &str, args: &[Value], path: &str, depth: usize) -> Vec<
                 diags.push(arity_error(path, op, "1 argument", args.len() - 1));
             }
         }
+        "global-state" => {
+            if args.len() != 2 || !args[1].is_string() {
+                diags.push(Diagnostic::error(
+                    "E021",
+                    path,
+                    "\"global-state\" requires a single string argument",
+                ));
+            }
+        }
 
         // --- Decision ---
         "case" => {
@@ -175,6 +175,11 @@ fn validate_operator(op: &str, args: &[Value], path: &str, depth: usize) -> Vec<
                 diags.push(arity_error(path, op, "1 argument", args.len() - 1));
             }
         }
+        "ln2" | "pi" | "e" => {
+            if args.len() != 1 {
+                diags.push(arity_error(path, op, "0 arguments", args.len() - 1));
+            }
+        }
         "min" | "max" => {
             if args.len() < 3 {
                 diags.push(arity_error(
@@ -227,6 +232,21 @@ fn validate_operator(op: &str, args: &[Value], path: &str, depth: usize) -> Vec<
                     path,
                     op,
                     "at least 2 arguments",
+                    args.len() - 1,
+                ));
+            }
+        }
+        "split" | "join" => {
+            if args.len() != 3 {
+                diags.push(arity_error(path, op, "2 arguments", args.len() - 1));
+            }
+        }
+        "resolved-locale" => {
+            if args.len() != 2 {
+                diags.push(arity_error(
+                    path,
+                    op,
+                    "1 argument (collator)",
                     args.len() - 1,
                 ));
             }
@@ -290,13 +310,6 @@ fn validate_operator(op: &str, args: &[Value], path: &str, depth: usize) -> Vec<
         "to-rgba" => {
             if args.len() != 2 {
                 diags.push(arity_error(path, op, "1 argument (color)", args.len() - 1));
-            }
-        }
-
-        // --- Image ---
-        "resolved-image" => {
-            if args.len() < 2 {
-                diags.push(arity_error(path, op, "at least 1 argument", args.len() - 1));
             }
         }
 
@@ -419,17 +432,27 @@ fn validate_operator(op: &str, args: &[Value], path: &str, depth: usize) -> Vec<
                 ));
             }
         }
-        "geometry-type" | "id" | "line-progress" | "properties" | "accumulated" => {
+        "geometry-type" | "id" | "line-progress" | "properties" | "accumulated"
+        | "heatmap-density" | "elevation" => {
             if args.len() != 1 {
                 diags.push(arity_error(path, op, "0 arguments", args.len() - 1));
             }
         }
 
         // --- Format ---
-        "format" | "image" => {
-            // format: [string-or-expr, options, ...] — at least 2
+        "format" => {
             if args.len() < 2 {
                 diags.push(arity_error(path, op, "at least 1 argument", args.len() - 1));
+            }
+        }
+        "image" => {
+            if args.len() != 2 {
+                diags.push(arity_error(
+                    path,
+                    op,
+                    "1 argument (image name)",
+                    args.len() - 1,
+                ));
             }
         }
 
@@ -653,14 +676,14 @@ mod tests {
     }
 
     #[test]
-    fn test_depth_warning_at_11() {
-        // Build a deeply nested get expression: ["get", ["get", ["get", ...]]]
+    fn test_depth_warning_is_linter_only() {
+        // validate_expression does NOT emit W006 — the linter handles it
         let mut expr = json!(["get", "x"]);
         for _ in 0..11 {
             expr = json!(["get", expr]);
         }
         let diags = validate_expression(&expr, "paint.fill-color", 0);
-        assert!(diags.iter().any(|d| d.code == "W006"));
+        assert!(!diags.iter().any(|d| d.code == "W006"));
     }
 
     #[test]
@@ -715,5 +738,139 @@ mod tests {
         assert!(!is_legacy_filter(&input));
         let result = migrate_legacy_filter(&input);
         assert_eq!(result, input);
+    }
+
+    #[test]
+    fn test_ln2_valid() {
+        assert!(validate_expression(&json!(["ln2"]), "p", 0).is_empty());
+    }
+
+    #[test]
+    fn test_ln2_wrong_arity() {
+        let diags = validate_expression(&json!(["ln2", 42]), "p", 0);
+        assert!(diags.iter().any(|d| d.code == "E021"));
+    }
+
+    #[test]
+    fn test_pi_valid() {
+        assert!(validate_expression(&json!(["pi"]), "p", 0).is_empty());
+    }
+
+    #[test]
+    fn test_pi_wrong_arity() {
+        let diags = validate_expression(&json!(["pi", 42]), "p", 0);
+        assert!(diags.iter().any(|d| d.code == "E021"));
+    }
+
+    #[test]
+    fn test_e_valid() {
+        assert!(validate_expression(&json!(["e"]), "p", 0).is_empty());
+    }
+
+    #[test]
+    fn test_e_wrong_arity() {
+        let diags = validate_expression(&json!(["e", 42]), "p", 0);
+        assert!(diags.iter().any(|d| d.code == "E021"));
+    }
+
+    #[test]
+    fn test_global_state_valid() {
+        assert!(validate_expression(&json!(["global-state", "myProp"]), "p", 0).is_empty());
+    }
+
+    #[test]
+    fn test_global_state_missing_arg() {
+        let diags = validate_expression(&json!(["global-state"]), "p", 0);
+        assert!(diags.iter().any(|d| d.code == "E021"));
+    }
+
+    #[test]
+    fn test_split_valid() {
+        assert!(validate_expression(&json!(["split", "a,b", ","]), "p", 0).is_empty());
+    }
+
+    #[test]
+    fn test_split_wrong_arity() {
+        let diags = validate_expression(&json!(["split", "a,b"]), "p", 0);
+        assert!(diags.iter().any(|d| d.code == "E021"));
+    }
+
+    #[test]
+    fn test_join_valid() {
+        assert!(validate_expression(&json!(["join", ["get", "arr"], ","]), "p", 0).is_empty());
+    }
+
+    #[test]
+    fn test_join_wrong_arity() {
+        let diags = validate_expression(&json!(["join", ["a", "b"]]), "p", 0);
+        assert!(diags.iter().any(|d| d.code == "E021"));
+    }
+
+    #[test]
+    fn test_resolved_locale_valid() {
+        let expr = json!(["resolved-locale", ["collator", {"case-sensitive": false}]]);
+        assert!(validate_expression(&expr, "p", 0).is_empty());
+    }
+
+    #[test]
+    fn test_resolved_locale_missing_arg() {
+        let diags = validate_expression(&json!(["resolved-locale"]), "p", 0);
+        assert!(diags.iter().any(|d| d.code == "E021"));
+    }
+
+    #[test]
+    fn test_heatmap_density_valid() {
+        assert!(validate_expression(&json!(["heatmap-density"]), "p", 0).is_empty());
+    }
+
+    #[test]
+    fn test_heatmap_density_wrong_arity() {
+        let diags = validate_expression(&json!(["heatmap-density", "extra"]), "p", 0);
+        assert!(diags.iter().any(|d| d.code == "E021"));
+    }
+
+    #[test]
+    fn test_elevation_valid() {
+        assert!(validate_expression(&json!(["elevation"]), "p", 0).is_empty());
+    }
+
+    #[test]
+    fn test_elevation_wrong_arity() {
+        let diags = validate_expression(&json!(["elevation", "extra"]), "p", 0);
+        assert!(diags.iter().any(|d| d.code == "E021"));
+    }
+
+    #[test]
+    fn test_resolved_image_is_unknown() {
+        let diags = validate_expression(&json!(["resolved-image", "sprite"]), "p", 0);
+        assert!(diags.iter().any(|d| d.code == "E022"));
+    }
+
+    #[test]
+    fn test_hsl_valid() {
+        assert!(validate_expression(&json!(["hsl", 0, 100, 50]), "p", 0).is_empty());
+    }
+
+    #[test]
+    fn test_hsl_wrong_arity() {
+        let diags = validate_expression(&json!(["hsl", 0, 100]), "p", 0);
+        assert!(diags.iter().any(|d| d.code == "E021"));
+    }
+
+    #[test]
+    fn test_hsla_valid() {
+        assert!(validate_expression(&json!(["hsla", 0, 100, 50, 1]), "p", 0).is_empty());
+    }
+
+    #[test]
+    fn test_hsla_wrong_arity() {
+        let diags = validate_expression(&json!(["hsla", 0, 100, 50]), "p", 0);
+        assert!(diags.iter().any(|d| d.code == "E021"));
+    }
+
+    #[test]
+    fn test_image_too_many_args() {
+        let diags = validate_expression(&json!(["image", "sprite", "extra"]), "p", 0);
+        assert!(diags.iter().any(|d| d.code == "E021"));
     }
 }

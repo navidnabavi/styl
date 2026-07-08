@@ -1,6 +1,7 @@
 use crate::diagnostic::Diagnostic;
 use crate::linter::LintRule;
-use crate::style::{expression::validate_expression, Style};
+use crate::style::Style;
+use serde_json::Value;
 
 /// W006: Expression depth exceeds 10 (performance)
 pub struct ExpressionDepth;
@@ -18,11 +19,7 @@ impl LintRule for ExpressionDepth {
                 if let Some(obj) = paint.as_object() {
                     for (key, val) in obj {
                         let p = format!("{}.paint.{}", path, key);
-                        diags.extend(
-                            validate_expression(val, &p, 0)
-                                .into_iter()
-                                .filter(|d| d.code == "W006"),
-                        );
+                        diags.extend(check_depth(val, &p, 0));
                     }
                 }
             }
@@ -30,17 +27,49 @@ impl LintRule for ExpressionDepth {
                 if let Some(obj) = layout.as_object() {
                     for (key, val) in obj {
                         let p = format!("{}.layout.{}", path, key);
-                        diags.extend(
-                            validate_expression(val, &p, 0)
-                                .into_iter()
-                                .filter(|d| d.code == "W006"),
-                        );
+                        diags.extend(check_depth(val, &p, 0));
                     }
                 }
             }
         }
         diags
     }
+}
+
+fn check_depth(value: &Value, path: &str, depth: usize) -> Vec<Diagnostic> {
+    let mut diags = Vec::new();
+
+    if depth > 10 {
+        diags.push(
+            Diagnostic::warning(
+                "W006",
+                path,
+                "expression depth exceeds 10 (performance impact)",
+            )
+            .with_hint("simplify nested expressions or use intermediate variables with 'let'"),
+        );
+        return diags;
+    }
+
+    match value {
+        Value::Array(arr) if !arr.is_empty() && arr[0].is_string() => {
+            for (i, arg) in arr[1..].iter().enumerate() {
+                if arg.is_array() || arg.is_object() {
+                    let child_path = format!("{}[{}]", path, i + 1);
+                    diags.extend(check_depth(arg, &child_path, depth + 1));
+                }
+            }
+        }
+        Value::Object(map) => {
+            for (k, v) in map {
+                let child_path = format!("{}.{}", path, k);
+                diags.extend(check_depth(v, &child_path, depth + 1));
+            }
+        }
+        _ => {}
+    }
+
+    diags
 }
 
 #[cfg(test)]

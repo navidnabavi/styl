@@ -276,6 +276,8 @@ A feature in the style is not supported by the target spec (`--spec mapbox` or `
 | `terrain` root property | Yes | No |
 | `fog` root property | Yes | No |
 | `distance-from-center` expression | Yes | No |
+| `hsl` expression | No | Yes |
+| `hsla` expression | No | Yes |
 
 **Example** — sky layer with `--spec mapbox`:
 
