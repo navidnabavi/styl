@@ -41,14 +41,14 @@ Dual crate: `src/lib.rs` exposes the public API as `styl`; `src/main.rs` is the 
 
 ### Core types
 
-- `src/diagnostic.rs` — `Diagnostic { severity, code, path, message, hint }` + three renderers (`render_human`, `render_json`, `render_github`). All validators/linters produce `Vec<Diagnostic>`.
+- `src/diagnostic/` — `Diagnostic { severity, code, path, message, hint }` + four renderers (`render_human`, `render_json`, `render_github`, `render_html`). All validators/linters produce `Vec<Diagnostic>`.
 - `src/style/types.rs` — `Style` root struct + all `Source` variants (vector, raster, raster-dem, geojson, image, video). Uses `indexmap::IndexMap` for sources to preserve insertion order.
 - `src/style/layer.rs` — `Layer` struct + `LayerType` enum (11 variants, `color-relief` is MapLibre-only). Paint/layout stored as `serde_json::Value` for flexible validation.
-- `src/style/expression.rs` — `validate_expression(value, path, depth)` recursively validates expression operator arity and emits W006 at depth > 10.
+- `src/style/expression.rs` — `validate_expression(value, path, depth)` recursively validates expression operator arity and emits W006 at depth > 20.
 
 ### Validators (E-codes, spec violations)
 
-`src/validator/mod.rs::run_all()` chains: root → sources → layers → refs.
+`src/validator/mod.rs::run_all()` chains: root → sources → layers → refs → compat (sky, color-relief, terrain, fog, expression, mapbox-only-expression). Compat validators are filtered by `spec_affinity()` against the active `--spec`.
 
 - `root.rs` — version==8, center/zoom/bearing/pitch ranges, glyphs placeholders
 - `sources.rs` — required fields per source type (url or tiles)
@@ -57,9 +57,9 @@ Dual crate: `src/lib.rs` exposes the public API as `styl`; `src/main.rs` is the 
 
 ### Linter (W-codes, best practices)
 
-`src/linter/mod.rs::run_all()` instantiates all 21 rules via `LintRule` trait.
+`src/linter/mod.rs::run_all()` instantiates all 22 rules via `LintRule` trait.
 
-Rules in `src/linter/rules/`: `duplicate_ids` (W001), `visibility` (W002), `unused_layers` (W003), `stop_order` (W004), `z_order` (W005), `expression_depth` (W006), `perf_hints` (W007–W021).
+Rules in `src/linter/rules/`: `duplicate_ids` (W001), `visibility` (W002), `unused_layers` (W003), `stop_order` (W004), `z_order` (W005), `expression_depth` (W006), `perf_hints` (W007–W022).
 
 Config in `src/linter/config.rs` — TOML `.stylrc` auto-discovered by walking up the directory tree. Supports per-rule severity overrides (error/warn/off) and `format.indent`.
 
@@ -115,4 +115,4 @@ When fixing a known gap or adding a validator/linter rule, update the relevant d
 - v8 JSON schema (authoritative property lists): https://github.com/maplibre/maplibre-style-spec/blob/main/src/reference/v8.json
 - Mapbox (secondary, `--spec mapbox`): https://docs.mapbox.com/mapbox-gl-js/style-spec/
 
-Divergence between specs tracked in `src/style/spec.rs` (constants only — not yet wired into runtime checks).
+Divergence between specs tracked in `src/style/spec.rs` (`MAPLIBRE_ONLY_*` / `MAPBOX_ONLY_*` constants). Wired into runtime via `src/validator/compat.rs` (E023 + compat validators), filtered by `SpecAffinity` against the active `--spec`.
