@@ -1,1 +1,8 @@
 /target
+
+# Local tooling / editor
+.claude.local.md
+.codegraph/
+
+# Local scratch style
+style.json
