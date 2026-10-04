@@ -44,6 +44,32 @@ impl Server {
         self.stdin.flush().expect("flush");
     }
 
+    /// Read messages until one matches `method`, discarding the rest.
+    ///
+    /// The server sends a `client/registerCapability` request of its own after
+    /// initializing, so a client cannot assume the next message is the one it
+    /// is waiting for.
+    fn recv_notification(&mut self, method: &str) -> serde_json::Value {
+        for _ in 0..16 {
+            let message = self.recv();
+            if message["method"] == method {
+                return message;
+            }
+        }
+        panic!("no `{}` notification arrived", method);
+    }
+
+    /// Read messages until a response to `id` arrives, discarding the rest.
+    fn recv_response(&mut self, id: i64) -> serde_json::Value {
+        for _ in 0..16 {
+            let message = self.recv();
+            if message["id"] == id && message.get("method").is_none() {
+                return message;
+            }
+        }
+        panic!("no response to request {}", id);
+    }
+
     /// Read one framed message. Panics if the stream ends first.
     fn recv(&mut self) -> serde_json::Value {
         let mut length = None;
@@ -77,11 +103,26 @@ fn real_stdio_session_round_trips_and_exits_cleanly() {
         "jsonrpc": "2.0", "method": "initialized", "params": {}
     }));
 
-    let initialize = server.recv();
+    let initialize = server.recv_response(1);
     let capabilities = &initialize["result"]["capabilities"];
     // Ranges are counted in UTF-16 units, so the server must say so.
     assert_eq!(capabilities["positionEncoding"], "utf-16");
     assert_eq!(capabilities["documentFormattingProvider"], true);
+
+    // The server asks the client to watch `.stylrc` so config edits invalidate
+    // its cache.
+    let registration = server.recv_notification("client/registerCapability");
+    let registrations = registration["params"]["registrations"]
+        .as_array()
+        .expect("registrations array");
+    assert!(
+        registrations.iter().any(|r| {
+            r["method"] == "workspace/didChangeWatchedFiles"
+                && r["registerOptions"]["watchers"][0]["globPattern"] == "**/.stylrc"
+        }),
+        "expected a .stylrc watcher: {}",
+        registration
+    );
 
     server.send(serde_json::json!({
         "jsonrpc": "2.0", "method": "textDocument/didOpen",
@@ -91,8 +132,7 @@ fn real_stdio_session_round_trips_and_exits_cleanly() {
         }}
     }));
 
-    let published = server.recv();
-    assert_eq!(published["method"], "textDocument/publishDiagnostics");
+    let published = server.recv_notification("textDocument/publishDiagnostics");
     let diagnostics = published["params"]["diagnostics"]
         .as_array()
         .expect("diagnostics array");
@@ -107,8 +147,8 @@ fn real_stdio_session_round_trips_and_exits_cleanly() {
     server.send(serde_json::json!({
         "jsonrpc": "2.0", "id": 2, "method": "shutdown", "params": null
     }));
-    let ack = server.recv();
-    assert_eq!(ack["id"], 2);
+    let ack = server.recv_response(2);
+    assert!(ack["error"].is_null(), "shutdown should succeed: {}", ack);
 
     server.send(serde_json::json!({ "jsonrpc": "2.0", "method": "exit", "params": null }));
 

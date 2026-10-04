@@ -9,6 +9,7 @@ use lsp_types::{
     PublishDiagnosticsParams, Uri,
 };
 
+use super::config_cache::ConfigCache;
 use super::document::{Document, Settings};
 use super::{analysis, BoxError};
 
@@ -29,6 +30,9 @@ pub(super) struct Server {
     /// `Cell` internally, which rules it out as a key under `clippy::all`.
     pub(super) documents: HashMap<String, Document>,
     pub(super) settings: Settings,
+    /// `.stylrc` lookups walk the directory tree and read from disk, so they are
+    /// cached rather than repeated on every publish.
+    pub(super) configs: ConfigCache,
 }
 
 impl Server {
@@ -36,6 +40,7 @@ impl Server {
         Self {
             documents: HashMap::new(),
             settings: Settings::default(),
+            configs: ConfigCache::default(),
         }
     }
 
@@ -87,16 +92,21 @@ impl Server {
         }
     }
 
-    pub(super) fn publish(&self, connection: &Connection, key: &str) -> Result<(), BoxError> {
+    pub(super) fn publish(&mut self, connection: &Connection, key: &str) -> Result<(), BoxError> {
         let Some(document) = self.documents.get(key) else {
             return Ok(());
         };
         if !self.settings.enabled || !document.is_style {
             return Ok(());
         }
-        let diagnostics =
-            analysis::diagnose(&document.text, &document.uri, self.settings.spec.clone());
-        self.send_diagnostics(connection, &document.uri, diagnostics)
+        let uri = document.uri.clone();
+        let diagnostics = analysis::diagnose(
+            &document.text,
+            &uri,
+            self.settings.spec.clone(),
+            &mut self.configs,
+        );
+        self.send_diagnostics(connection, &uri, diagnostics)
     }
 
     /// Drop the editor's diagnostics for a document we still track.

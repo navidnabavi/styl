@@ -1,9 +1,11 @@
 //! Transport setup and the initialize handshake.
 
-use lsp_server::Connection;
+use lsp_server::{Connection, Message, Request, RequestId};
 use lsp_types::{
-    OneOf, PositionEncodingKind, ServerCapabilities, TextDocumentSyncCapability,
-    TextDocumentSyncKind,
+    notification::DidChangeWatchedFiles, notification::Notification as _,
+    request::RegisterCapability, request::Request as _, DidChangeWatchedFilesRegistrationOptions,
+    FileSystemWatcher, GlobPattern, OneOf, PositionEncodingKind, Registration, RegistrationParams,
+    ServerCapabilities, TextDocumentSyncCapability, TextDocumentSyncKind,
 };
 use serde::Deserialize;
 
@@ -20,6 +22,11 @@ pub fn serve() -> Result<(), BoxError> {
     let options = serde_json::from_value::<InitializeOptions>(initialize)
         .ok()
         .and_then(|params| params.initialization_options);
+
+    // Ask the client to tell us when a `.stylrc` changes. Fire and forget: the
+    // reply carries nothing we need, and a client that does not support dynamic
+    // registration simply never sends the notifications.
+    register_config_watcher(&connection);
 
     serve_connection(&connection, options.as_ref())?;
 
@@ -40,6 +47,34 @@ pub fn serve_connection(
     let mut server = Server::new();
     server.settings.apply(initialization_options);
     server.main_loop(connection)
+}
+
+/// Register a watcher for `.stylrc` so config edits invalidate the cache.
+fn register_config_watcher(connection: &Connection) {
+    let options = DidChangeWatchedFilesRegistrationOptions {
+        watchers: vec![FileSystemWatcher {
+            glob_pattern: GlobPattern::String("**/.stylrc".to_string()),
+            kind: None,
+        }],
+    };
+    let Ok(register_options) = serde_json::to_value(options) else {
+        return;
+    };
+    let params = RegistrationParams {
+        registrations: vec![Registration {
+            id: "styl-stylrc-watcher".to_string(),
+            method: DidChangeWatchedFiles::METHOD.to_string(),
+            register_options: Some(register_options),
+        }],
+    };
+    let Ok(params) = serde_json::to_value(params) else {
+        return;
+    };
+    let _ = connection.sender.send(Message::Request(Request {
+        id: RequestId::from("styl-register-watchers".to_string()),
+        method: RegisterCapability::METHOD.to_string(),
+        params,
+    }));
 }
 
 fn capabilities() -> ServerCapabilities {

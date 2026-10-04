@@ -77,6 +77,10 @@ For formatting indentation, a `.stylrc` that exists outranks the editor's `tabSi
 
 Unsaved and remote buffers (any URI that is not `file:`) get no `.stylrc`, and so use defaults.
 
+The server asks the client to watch `**/.stylrc`, so a config edit takes effect on open documents without reopening them.
+
+Parsed configs are cached, because reading and parsing TOML on every keystroke batch is wasteful for a file that changes almost never. Discovery — the walk up the directory tree — still runs every time, so a `.stylrc` created after a document was opened is found regardless of whether the client supports file watching. The cache is keyed on the file's mtime, and the watcher notification clears it outright, which covers an edit that mtime granularity might not distinguish.
+
 ## Editor setup
 
 Any LSP-capable editor can drive it. The server needs no initialization options.
@@ -122,7 +126,6 @@ VS Code and Zed extensions are planned; see [Roadmap](#roadmap).
 | Completion | Paint/layout properties narrowed by the enclosing layer's `type`, layer types, source IDs, expression operators. A plain JSON schema cannot narrow `paint` by a sibling key, which is the main reason to build this. |
 | Hover | Rule documentation per code, property documentation from the spec allowlists. |
 | Code actions | `source.fixAll.styl`, running the autofixable rules. Per-site quick fixes need a new per-path fix API: `linter::run_fixes` currently rewrites the whole document across all fixable rules and reformats it, which is wrong behavior for a single lightbulb. |
-| `.stylrc` watching | `didChangeWatchedFiles` to re-lint open documents when config changes. |
 | Go to definition | `layer.source` to its entry in `sources`, and find-references the other way. |
 | VS Code extension | Thin `vscode-languageclient` wrapper, platform-specific VSIXs matching the release matrix. |
 | Zed extension | WASM extension using `zed_extension_api`, fetching the binary from GitHub releases. |

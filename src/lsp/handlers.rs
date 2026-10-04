@@ -6,12 +6,13 @@ use std::time::Instant;
 use lsp_server::{Connection, Message, Notification, Request, Response};
 use lsp_types::{
     notification::{
-        DidChangeConfiguration, DidChangeTextDocument, DidCloseTextDocument, DidOpenTextDocument,
-        DidSaveTextDocument, Notification as _,
+        DidChangeConfiguration, DidChangeTextDocument, DidChangeWatchedFiles, DidCloseTextDocument,
+        DidOpenTextDocument, DidSaveTextDocument, Notification as _,
     },
     request::{Formatting, Request as _},
-    DidChangeConfigurationParams, DidChangeTextDocumentParams, DidCloseTextDocumentParams,
-    DidOpenTextDocumentParams, DidSaveTextDocumentParams, DocumentFormattingParams,
+    DidChangeConfigurationParams, DidChangeTextDocumentParams, DidChangeWatchedFilesParams,
+    DidCloseTextDocumentParams, DidOpenTextDocumentParams, DidSaveTextDocumentParams,
+    DocumentFormattingParams,
 };
 
 use super::document::Document;
@@ -37,13 +38,15 @@ impl Server {
         };
 
         let uri = params.text_document.uri;
-        let edits = self
-            .documents
-            .get(uri.as_str())
-            .filter(|document| document.is_style)
-            .and_then(|document| {
-                analysis::format(&document.text, &uri, Some(params.options.tab_size))
-            });
+        let edits = match self.documents.get(uri.as_str()) {
+            Some(document) if document.is_style => analysis::format(
+                &document.text,
+                &uri,
+                Some(params.options.tab_size),
+                &mut self.configs,
+            ),
+            _ => None,
+        };
 
         connection
             .sender
@@ -122,6 +125,18 @@ impl Server {
                     } else {
                         self.clear(connection, &key)?;
                     }
+                }
+            }
+
+            DidChangeWatchedFiles::METHOD => {
+                let _: DidChangeWatchedFilesParams =
+                    notification.extract(DidChangeWatchedFiles::METHOD)?;
+                // Only `.stylrc` is watched, and one edit can change the config
+                // seen by any directory below it, so drop the whole cache.
+                self.configs.clear();
+                let open: Vec<String> = self.documents.keys().cloned().collect();
+                for key in open {
+                    self.publish(connection, &key)?;
                 }
             }
 

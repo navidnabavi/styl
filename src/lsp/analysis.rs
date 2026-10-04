@@ -7,9 +7,10 @@ use lsp_types::{
     Position as LspPosition, Range as LspRange, TextEdit, Uri,
 };
 
+use super::config_cache::ConfigCache;
 use crate::cli::Spec;
 use crate::diagnostic::{Diagnostic, Severity, TextRange};
-use crate::linter::config::{discover_config, load_config, Config};
+use crate::linter::config::Config;
 use crate::span::{self, SourceMap};
 use crate::{formatter, linter, style::parse_style, style::ShapeError, validator};
 
@@ -36,7 +37,12 @@ pub fn looks_like_style(text: &str) -> bool {
 /// Run the validators and linter over `text` and convert the result to LSP.
 ///
 /// `spec_override` comes from editor settings and wins over `.stylrc`.
-pub fn diagnose(text: &str, uri: &Uri, spec_override: Option<Spec>) -> Vec<LspDiagnostic> {
+pub fn diagnose(
+    text: &str,
+    uri: &Uri,
+    spec_override: Option<Spec>,
+    configs: &mut ConfigCache,
+) -> Vec<LspDiagnostic> {
     // Check that it is JSON at all first, so a syntax error is reported as one
     // rather than as a schema complaint about whatever serde reached first.
     if let Err(error) = serde_json::from_str::<serde_json::Value>(text) {
@@ -47,7 +53,7 @@ pub fn diagnose(text: &str, uri: &Uri, spec_override: Option<Spec>) -> Vec<LspDi
         Err(error) => return vec![shape_diagnostic(&error, text)],
     };
 
-    let config = resolve_config(uri).unwrap_or_default();
+    let config = resolve_config(uri, configs).cloned().unwrap_or_default();
     let spec = spec_override
         .or_else(|| config.resolved_spec())
         .unwrap_or(Spec::Both);
@@ -62,13 +68,18 @@ pub fn diagnose(text: &str, uri: &Uri, spec_override: Option<Spec>) -> Vec<LspDi
 
 /// Format the whole document. `None` when the buffer is not valid JSON, or when
 /// it is already formatted.
-pub fn format(text: &str, uri: &Uri, tab_size: Option<u32>) -> Option<Vec<TextEdit>> {
+pub fn format(
+    text: &str,
+    uri: &Uri,
+    tab_size: Option<u32>,
+    configs: &mut ConfigCache,
+) -> Option<Vec<TextEdit>> {
     let value = serde_json::from_str::<serde_json::Value>(text).ok()?;
 
     // A project carrying a `.stylrc` has opted into styl's own formatting, so it
     // outranks the editor's tab size. `FormatConfig::indent` cannot distinguish
     // "set to 2" from "unset", which is why this keys off the file existing.
-    let indent = match (resolve_config(uri), tab_size) {
+    let indent = match (resolve_config(uri, configs), tab_size) {
         (Some(config), _) => config.format.indent,
         (None, Some(size)) => size as usize,
         (None, None) => 2,
@@ -96,11 +107,11 @@ pub fn format(text: &str, uri: &Uri, tab_size: Option<u32>) -> Option<Vec<TextEd
     }])
 }
 
-/// Load the `.stylrc` governing `uri`, if there is one.
-pub fn resolve_config(uri: &Uri) -> Option<Config> {
+/// The `.stylrc` governing `uri`, if there is one.
+fn resolve_config<'a>(uri: &Uri, configs: &'a mut ConfigCache) -> Option<&'a Config> {
     let path = uri_to_path(uri)?;
-    let directory = path.parent()?;
-    load_config(&discover_config(directory)?).ok()
+    let directory = path.parent()?.to_path_buf();
+    configs.get(&directory)
 }
 
 fn to_lsp(diagnostic: &Diagnostic) -> LspDiagnostic {
@@ -307,6 +318,7 @@ mod tests {
             "{\n  \"version\": 8,\n  oops\n}",
             &uri("file:///s.json"),
             None,
+            &mut ConfigCache::default(),
         );
         assert_eq!(diagnostics.len(), 1);
         assert_eq!(diagnostics[0].range.start.line, 2);
@@ -316,7 +328,12 @@ mod tests {
     #[test]
     fn reports_rule_diagnostics_with_ranges_and_doc_links() {
         let text = "{\n  \"version\": 8,\n  \"sources\": {},\n  \"layers\": [\n    {\n      \"id\": \"a\",\n      \"type\": \"line\",\n      \"source\": \"nope\"\n    }\n  ]\n}";
-        let diagnostics = diagnose(text, &uri("file:///s.json"), None);
+        let diagnostics = diagnose(
+            text,
+            &uri("file:///s.json"),
+            None,
+            &mut ConfigCache::default(),
+        );
 
         let missing = diagnostics
             .iter()
@@ -330,7 +347,12 @@ mod tests {
     #[test]
     fn shape_errors_point_at_the_offending_field() {
         let text = "{\n  \"version\": 8,\n  \"sources\": {},\n  \"layers\": [\n    { \"id\": \"a\", \"type\": \"fill\", \"minzoom\": \"five\" }\n  ]\n}";
-        let diagnostics = diagnose(text, &uri("file:///s.json"), None);
+        let diagnostics = diagnose(
+            text,
+            &uri("file:///s.json"),
+            None,
+            &mut ConfigCache::default(),
+        );
         assert_eq!(diagnostics.len(), 1);
         assert_eq!(
             diagnostics[0].code,
@@ -344,7 +366,13 @@ mod tests {
     #[test]
     fn format_returns_no_edit_for_already_formatted_text() {
         let text = "{\n  \"version\": 8,\n  \"sources\": {},\n  \"layers\": []\n}\n";
-        let edits = format(text, &uri("file:///s.json"), Some(2)).expect("formattable");
+        let edits = format(
+            text,
+            &uri("file:///s.json"),
+            Some(2),
+            &mut ConfigCache::default(),
+        )
+        .expect("formattable");
         assert!(edits.is_empty(), "got: {:?}", edits);
     }
 
@@ -354,6 +382,7 @@ mod tests {
             r#"{"layers":[],"version":8,"sources":{}}"#,
             &uri("file:///s.json"),
             Some(2),
+            &mut ConfigCache::default(),
         )
         .expect("formattable");
         assert_eq!(edits.len(), 1);
@@ -363,7 +392,13 @@ mod tests {
 
     #[test]
     fn format_declines_invalid_json() {
-        assert!(format("{not json", &uri("file:///s.json"), Some(2)).is_none());
+        assert!(format(
+            "{not json",
+            &uri("file:///s.json"),
+            Some(2),
+            &mut ConfigCache::default(),
+        )
+        .is_none());
     }
 
     #[test]

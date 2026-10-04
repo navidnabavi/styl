@@ -7,14 +7,14 @@ use std::time::Duration;
 use lsp_server::{Connection, Message, Notification, Request, RequestId};
 use lsp_types::{
     notification::{
-        DidChangeConfiguration, DidChangeTextDocument, DidCloseTextDocument, DidOpenTextDocument,
-        Notification as _,
+        DidChangeConfiguration, DidChangeTextDocument, DidChangeWatchedFiles, DidCloseTextDocument,
+        DidOpenTextDocument, Notification as _,
     },
     request::{Formatting, Request as _},
-    DidChangeConfigurationParams, DidChangeTextDocumentParams, DidCloseTextDocumentParams,
-    DidOpenTextDocumentParams, DocumentFormattingParams, FormattingOptions, NumberOrString,
-    PublishDiagnosticsParams, TextDocumentContentChangeEvent, TextDocumentIdentifier,
-    TextDocumentItem, TextEdit, Uri, VersionedTextDocumentIdentifier,
+    DidChangeConfigurationParams, DidChangeTextDocumentParams, DidChangeWatchedFilesParams,
+    DidCloseTextDocumentParams, DidOpenTextDocumentParams, DocumentFormattingParams,
+    FormattingOptions, NumberOrString, PublishDiagnosticsParams, TextDocumentContentChangeEvent,
+    TextDocumentIdentifier, TextDocumentItem, TextEdit, Uri, VersionedTextDocumentIdentifier,
 };
 
 /// Long enough to clear the server's 300ms change debounce.
@@ -341,5 +341,51 @@ fn spec_from_settings_changes_what_is_reported() {
     assert!(
         !codes(&harness.diagnostics()).contains(&"E023".to_string()),
         "sky is valid under the MapLibre spec"
+    );
+}
+
+/// A `.stylrc` edit must take effect without reopening the file. Config lookups
+/// are cached to keep them off the keystroke path, so the watcher notification
+/// is the only thing that can invalidate them.
+#[test]
+fn editing_stylrc_takes_effect_via_the_watcher() {
+    const SKY: &str = "{\n  \"version\": 8,\n  \"sources\": {},\n  \"layers\": [\n    { \"id\": \"sky\", \"type\": \"sky\" }\n  ]\n}";
+
+    let project = tempfile::tempdir().expect("tempdir");
+    let config = project.path().join(".stylrc");
+    std::fs::write(&config, "spec = \"maplibre\"\n").expect("write config");
+
+    let style_path = project.path().join("style.json");
+    let style_uri: Uri = format!("file://{}", style_path.display())
+        .parse()
+        .expect("uri");
+
+    let harness = Harness::start();
+    harness.notify(
+        DidOpenTextDocument::METHOD,
+        DidOpenTextDocumentParams {
+            text_document: TextDocumentItem {
+                uri: style_uri.clone(),
+                language_id: "json".to_string(),
+                version: 1,
+                text: SKY.to_string(),
+            },
+        },
+    );
+    // spec = maplibre, so the MapLibre-only sky layer is fine.
+    assert!(
+        !codes(&harness.diagnostics()).contains(&"E023".to_string()),
+        "sky is valid under the configured maplibre spec"
+    );
+
+    std::fs::write(&config, "spec = \"mapbox\"\n").expect("rewrite config");
+    harness.notify(
+        DidChangeWatchedFiles::METHOD,
+        DidChangeWatchedFilesParams { changes: vec![] },
+    );
+
+    assert!(
+        codes(&harness.diagnostics()).contains(&"E023".to_string()),
+        "the rewritten .stylrc should switch the spec to mapbox"
     );
 }

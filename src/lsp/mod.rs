@@ -6,6 +6,7 @@
 //! from here may print to it. Diagnostics for the operator go to stderr.
 
 mod analysis;
+mod config_cache;
 mod document;
 mod handlers;
 mod server;
