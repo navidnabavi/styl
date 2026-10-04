@@ -1,0 +1,18 @@
+{
+  "version": 8,
+  "sources": {
+    "v": { "type": "vector", "url": "https://example.com/t.json" }
+  },
+  "layers": [
+    {
+      "id": "fills",
+      "type": "fill",
+      "source": "v",
+      "source-layer": "landuse",
+      "paint": {
+        "fill-color": ["case", ["get"], "#fff", "#000"],
+        "fill-opacity": ["interpolate", ["linear"], ["zoom"], 0, ["abs"], 10, 1]
+      }
+    }
+  ]
+}

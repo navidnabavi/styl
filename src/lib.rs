@@ -2,6 +2,9 @@ pub mod cli;
 pub mod diagnostic;
 pub mod formatter;
 pub mod linter;
+#[cfg(feature = "lsp")]
+pub mod lsp;
+pub mod span;
 pub mod style;
 pub mod validator;
 

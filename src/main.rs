@@ -1,12 +1,12 @@
 use clap::Parser;
 use std::process;
 
-use styl::{cli, diagnostic, formatter, linter, style, validator};
+use styl::{cli, diagnostic, formatter, linter, span, style, validator};
 
-use cli::{Cli, Command, OutputFormat};
+use cli::{Cli, Command, OutputFormat, Spec};
 use diagnostic::{render_github, render_html, render_human, render_json};
 use linter::config::{discover_config, load_config, Config};
-use style::Style;
+use style::{parse_style, Style};
 
 fn main() {
     let cli = Cli::parse();
@@ -15,8 +15,22 @@ fn main() {
 }
 
 fn run(cli: &Cli) -> i32 {
+    // The language server owns stdin/stdout and takes no input file, so it has
+    // to short-circuit ahead of `read_input`.
+    if matches!(cli.command, Command::Lsp { .. }) {
+        return serve_lsp();
+    }
+
     // Load config
     let config = load_effective_config(cli);
+
+    // An explicit `--spec` outranks `.stylrc`, which outranks the default. The
+    // language server resolves this the same way, so the two never disagree.
+    let spec = cli
+        .spec
+        .clone()
+        .or_else(|| config.resolved_spec())
+        .unwrap_or(Spec::Both);
 
     // Read input
     let (content, filename) = match read_input(cli) {
@@ -36,51 +50,44 @@ fn run(cli: &Cli) -> i32 {
         }
     };
 
+    // Text the diagnostics refer to. `lint --fix` re-lints the rewritten
+    // document, so spans must be resolved against that, not the original.
+    let mut span_source = content.clone();
+
     let mut diagnostics: Vec<diagnostic::Diagnostic> = match &cli.command {
         Command::Check { .. } => {
-            let style: Style = match serde_json::from_value(value.clone()) {
+            let style = match load_style(&content, &filename) {
                 Ok(s) => s,
-                Err(e) => {
-                    eprintln!("error: style parse failed: {}", e);
-                    return 2;
-                }
+                Err(code) => return code,
             };
-            let mut diags = validator::run_all(&style, &cli.spec);
-            diags.extend(linter::run_all(&style, &cli.spec));
+            let mut diags = validator::run_all(&style, &spec);
+            diags.extend(linter::run_all(&style, &spec));
             diags
         }
         Command::Validate { .. } => {
-            let style: Style = match serde_json::from_value(value.clone()) {
+            let style = match load_style(&content, &filename) {
                 Ok(s) => s,
-                Err(e) => {
-                    eprintln!("error: style parse failed: {}", e);
-                    return 2;
-                }
+                Err(code) => return code,
             };
-            validator::run_all(&style, &cli.spec)
+            validator::run_all(&style, &spec)
         }
         Command::Lint { fix, .. } => {
-            let style: Style = match serde_json::from_value(value.clone()) {
+            let style = match load_style(&content, &filename) {
                 Ok(s) => s,
-                Err(e) => {
-                    eprintln!("error: style parse failed: {}", e);
-                    return 2;
-                }
+                Err(code) => return code,
             };
-            let diags = linter::run_all(&style, &cli.spec);
+            let diags = linter::run_all(&style, &spec);
             if *fix {
-                if let Err(code) = apply_fixes(&mut value, cli, &config, &diags) {
-                    return code;
+                match apply_fixes(&mut value, cli, &config, &spec) {
+                    Ok(formatted) => span_source = formatted,
+                    Err(code) => return code,
                 }
                 // Re-lint after fixes to get remaining diagnostics for exit code
-                let fixed_style: Style = match serde_json::from_value(value.clone()) {
+                let fixed_style = match load_style(&span_source, &filename) {
                     Ok(s) => s,
-                    Err(e) => {
-                        eprintln!("error: style parse after fix failed: {}", e);
-                        return 2;
-                    }
+                    Err(code) => return code,
                 };
-                linter::run_all(&fixed_style, &cli.spec)
+                linter::run_all(&fixed_style, &spec)
             } else {
                 diags
             }
@@ -105,9 +112,12 @@ fn run(cli: &Cli) -> i32 {
             }
             return 0;
         }
+        // Handled at the top of `run`, before any input is read.
+        Command::Lsp { .. } => unreachable!("lsp short-circuits earlier"),
     };
 
     config.apply_severity(&mut diagnostics);
+    span::resolve_ranges(&mut diagnostics, &span::SourceMap::parse(&span_source));
 
     if !cli.quiet {
         let output = match cli.format {
@@ -131,6 +141,23 @@ fn run(cli: &Cli) -> i32 {
     }
 }
 
+/// Deserialize a style, reporting the offending field and its source location
+/// rather than a bare serde message with no position.
+fn load_style(text: &str, filename: &str) -> Result<Style, i32> {
+    parse_style(text).map_err(|error| {
+        eprintln!("error: style parse failed {}", error);
+        let location = span::SourceMap::parse(text)
+            .range_for_path(&error.path)
+            .map(|range| {
+                let (line, column) = range.start.one_based();
+                format!("{}:{}:{}", filename, line, column)
+            })
+            .unwrap_or_else(|| filename.to_string());
+        eprintln!("  --> {}", location);
+        2i32
+    })
+}
+
 fn read_input(cli: &Cli) -> Result<(String, String), String> {
     if cli.stdin {
         use std::io::Read;
@@ -152,28 +179,38 @@ fn get_file_path(cli: &Cli) -> Option<&std::path::PathBuf> {
         Command::Fmt { file, .. } => file.as_ref(),
         Command::Lint { file, .. } => file.as_ref(),
         Command::Validate { file } => file.as_ref(),
+        Command::Lsp { .. } => None,
     }
+}
+
+#[cfg(feature = "lsp")]
+fn serve_lsp() -> i32 {
+    match styl::lsp::serve() {
+        Ok(()) => 0,
+        Err(e) => {
+            eprintln!("error: language server failed: {}", e);
+            2
+        }
+    }
+}
+
+#[cfg(not(feature = "lsp"))]
+fn serve_lsp() -> i32 {
+    eprintln!("error: this build of styl was compiled without the \"lsp\" feature");
+    2
 }
 
 fn apply_fixes(
     value: &mut serde_json::Value,
     cli: &Cli,
     config: &Config,
-    diags: &[diagnostic::Diagnostic],
-) -> Result<(), i32> {
-    let fixed_codes = linter::run_fixes(value, &cli.spec);
-    // Only report codes that had actual diagnostics
-    let reported: Vec<&str> = fixed_codes
-        .iter()
-        .copied()
-        .filter(|code| diags.iter().any(|d| d.code == *code))
-        .collect();
-    if !reported.is_empty() && !cli.quiet {
-        eprintln!(
-            "fixed {} issue(s) ({})",
-            reported.len(),
-            reported.join(", ")
-        );
+    spec: &Spec,
+) -> Result<String, i32> {
+    // `run_fixes` now reports only the rules that actually changed something, so
+    // there is nothing left to filter against the detected diagnostics.
+    let fixed = linter::run_fixes(value, spec);
+    if !fixed.is_empty() && !cli.quiet {
+        eprintln!("fixed {} issue(s) ({})", fixed.len(), fixed.join(", "));
     }
     let formatted = formatter::format_style(value, config.format.indent);
     if let Some(path) = get_file_path(cli) {
@@ -184,7 +221,7 @@ fn apply_fixes(
     } else {
         print!("{}", formatted);
     }
-    Ok(())
+    Ok(formatted)
 }
 
 fn load_effective_config(cli: &Cli) -> Config {
