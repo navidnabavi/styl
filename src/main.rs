@@ -87,7 +87,7 @@ fn run(cli: &Cli) -> i32 {
             };
             let diags = linter::run_all(&style, &spec);
             if *fix {
-                match apply_fixes(&mut value, cli, &config, &spec, &diags) {
+                match apply_fixes(&mut value, cli, &config, &spec) {
                     Ok(formatted) => span_source = formatted,
                     Err(code) => return code,
                 }
@@ -200,21 +200,12 @@ fn apply_fixes(
     cli: &Cli,
     config: &Config,
     spec: &Spec,
-    diags: &[diagnostic::Diagnostic],
 ) -> Result<String, i32> {
-    let fixed_codes = linter::run_fixes(value, spec);
-    // Only report codes that had actual diagnostics
-    let reported: Vec<&str> = fixed_codes
-        .iter()
-        .copied()
-        .filter(|code| diags.iter().any(|d| d.code == *code))
-        .collect();
-    if !reported.is_empty() && !cli.quiet {
-        eprintln!(
-            "fixed {} issue(s) ({})",
-            reported.len(),
-            reported.join(", ")
-        );
+    // `run_fixes` now reports only the rules that actually changed something, so
+    // there is nothing left to filter against the detected diagnostics.
+    let fixed = linter::run_fixes(value, spec);
+    if !fixed.is_empty() && !cli.quiet {
+        eprintln!("fixed {} issue(s) ({})", fixed.len(), fixed.join(", "));
     }
     let formatted = formatter::format_style(value, config.format.indent);
     if let Some(path) = get_file_path(cli) {
