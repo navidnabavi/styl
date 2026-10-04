@@ -113,9 +113,15 @@ impl Server {
                     notification.extract(DidChangeConfiguration::METHOD)?;
                 self.settings.apply(Some(&params.settings));
                 // Settings change what the rules report, so refresh everything.
+                // If the server was just switched off, the refresh clears the
+                // editor rather than leaving stale diagnostics on screen.
                 let open: Vec<String> = self.documents.keys().cloned().collect();
                 for key in open {
-                    self.publish(connection, &key)?;
+                    if self.settings.enabled {
+                        self.publish(connection, &key)?;
+                    } else {
+                        self.clear(connection, &key)?;
+                    }
                 }
             }
 

@@ -99,6 +99,23 @@ impl Server {
         self.send_diagnostics(connection, &document.uri, diagnostics)
     }
 
+    /// Drop the editor's diagnostics for a document we still track.
+    ///
+    /// Used when the server is switched off mid-session: stopping publishing is
+    /// not enough, because whatever the editor already shows would stay frozen
+    /// on screen.
+    pub(super) fn clear(&self, connection: &Connection, key: &str) -> Result<(), BoxError> {
+        let Some(document) = self.documents.get(key) else {
+            return Ok(());
+        };
+        // Still never claim a document that is not a style; even an empty publish
+        // marks the file as ours.
+        if !document.is_style {
+            return Ok(());
+        }
+        self.send_diagnostics(connection, &document.uri, Vec::new())
+    }
+
     pub(super) fn send_diagnostics(
         &self,
         connection: &Connection,

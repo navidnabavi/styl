@@ -68,7 +68,7 @@ Settings are read from `initializationOptions` and from `workspace/didChangeConf
 
 | Setting | Default | Description |
 |---------|---------|-------------|
-| `enable` | `true` | When false, the server stays connected but publishes nothing |
+| `enable` | `true` | When false, the server clears all diagnostics and stops analysing. Setting it back to true republishes. |
 | `spec` | — | `maplibre`, `mapbox`, or `both` |
 
 Precedence is **editor settings → `.stylrc` → `both`**, matching how the CLI resolves `--spec`. The `.stylrc` governing a document is discovered by walking up from that document's directory, exactly as the CLI does. See [Configuration](config.md).

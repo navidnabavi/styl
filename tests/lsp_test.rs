@@ -7,13 +7,14 @@ use std::time::Duration;
 use lsp_server::{Connection, Message, Notification, Request, RequestId};
 use lsp_types::{
     notification::{
-        DidChangeTextDocument, DidCloseTextDocument, DidOpenTextDocument, Notification as _,
+        DidChangeConfiguration, DidChangeTextDocument, DidCloseTextDocument, DidOpenTextDocument,
+        Notification as _,
     },
     request::{Formatting, Request as _},
-    DidChangeTextDocumentParams, DidCloseTextDocumentParams, DidOpenTextDocumentParams,
-    DocumentFormattingParams, FormattingOptions, NumberOrString, PublishDiagnosticsParams,
-    TextDocumentContentChangeEvent, TextDocumentIdentifier, TextDocumentItem, TextEdit, Uri,
-    VersionedTextDocumentIdentifier,
+    DidChangeConfigurationParams, DidChangeTextDocumentParams, DidCloseTextDocumentParams,
+    DidOpenTextDocumentParams, DocumentFormattingParams, FormattingOptions, NumberOrString,
+    PublishDiagnosticsParams, TextDocumentContentChangeEvent, TextDocumentIdentifier,
+    TextDocumentItem, TextEdit, Uri, VersionedTextDocumentIdentifier,
 };
 
 /// Long enough to clear the server's 300ms change debounce.
@@ -285,5 +286,60 @@ fn clears_diagnostics_when_a_document_closes() {
     assert!(
         harness.diagnostics().diagnostics.is_empty(),
         "closing must clear the client's copy"
+    );
+}
+
+/// Switching the server off has to clear what the editor already shows. Stopping
+/// at "publish nothing" freezes stale diagnostics on screen until the file is
+/// edited or closed.
+#[test]
+fn disabling_clears_diagnostics_instead_of_freezing_them() {
+    let harness = Harness::start();
+    harness.open("file:///project/style.json", BROKEN);
+    assert!(!harness.diagnostics().diagnostics.is_empty());
+
+    harness.notify(
+        DidChangeConfiguration::METHOD,
+        DidChangeConfigurationParams {
+            settings: serde_json::json!({ "styl": { "enable": false } }),
+        },
+    );
+
+    assert!(
+        harness.diagnostics().diagnostics.is_empty(),
+        "disabling must clear, not merely stop publishing"
+    );
+
+    harness.notify(
+        DidChangeConfiguration::METHOD,
+        DidChangeConfigurationParams {
+            settings: serde_json::json!({ "styl": { "enable": true } }),
+        },
+    );
+    assert!(
+        !harness.diagnostics().diagnostics.is_empty(),
+        "re-enabling must republish"
+    );
+}
+
+/// `spec` from editor settings must change what the rules report.
+#[test]
+fn spec_from_settings_changes_what_is_reported() {
+    const SKY: &str = "{\n  \"version\": 8,\n  \"sources\": {},\n  \"layers\": [\n    { \"id\": \"sky\", \"type\": \"sky\" }\n  ]\n}";
+
+    let harness = Harness::start();
+    harness.open("file:///project/style.json", SKY);
+    // Default spec is `both`, which flags the MapLibre-only sky layer.
+    assert!(codes(&harness.diagnostics()).contains(&"E023".to_string()));
+
+    harness.notify(
+        DidChangeConfiguration::METHOD,
+        DidChangeConfigurationParams {
+            settings: serde_json::json!({ "styl": { "spec": "maplibre" } }),
+        },
+    );
+    assert!(
+        !codes(&harness.diagnostics()).contains(&"E023".to_string()),
+        "sky is valid under the MapLibre spec"
     );
 }
