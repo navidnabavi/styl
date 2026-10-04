@@ -24,6 +24,8 @@ csscolorparser = "0.8"
 geojson    = "1"
 html-escape = "0.2"
 indexmap   = { version = "2", features = ["serde"] }
+lsp-server = { version = "0.10", optional = true }
+lsp-types  = { version = "0.97", optional = true }
 serde      = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["preserve_order"] }
 thiserror  = "2"
@@ -31,4 +33,12 @@ toml       = "1.1"
 
 [dev-dependencies]
 insta      = "1"
+lsp-server = "0.10"
+lsp-types  = "0.97"
 tempfile   = "3"
+
+[features]
+default = ["lsp"]
+# The language server. Optional so library consumers can drop the LSP
+# dependencies with `default-features = false`.
+lsp = ["dep:lsp-server", "dep:lsp-types"]

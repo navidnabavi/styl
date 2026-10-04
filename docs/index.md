@@ -10,6 +10,7 @@
 | `styl validate <file>` | Validators only — spec violations (E-codes) |
 | `styl lint <file>` | Linter only — best-practice warnings (W-codes) |
 | `styl fmt <file>` | Format file in-place (canonical key order) |
+| `styl lsp` | Run the language server over stdio |
 
 ## Quick Start
 
@@ -33,7 +34,7 @@ styl lint --spec mapbox style.json
 
 | Flag | Default | Description |
 |------|---------|-------------|
-| `--spec maplibre\|mapbox` | `maplibre` | Style spec to validate against |
+| `--spec both\|maplibre\|mapbox` | `.stylrc`, else `both` | Style spec to validate against |
 | `--format human\|json\|github\|html` | `human` | Output format |
 | `--config <path>` | auto-discover | Path to `.stylrc` config file |
 | `--stdin` | — | Read style from stdin instead of a file |
@@ -48,3 +49,4 @@ styl lint --spec mapbox style.json
 - [Formatter](formatter.md) — canonical key ordering
 - [Configuration](config.md) — `.stylrc` config file
 - [Layer Properties](layer-properties.md) — valid paint/layout props per layer type
+- [Language Server](lsp.md) — `styl lsp` for editor integration

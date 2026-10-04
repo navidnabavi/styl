@@ -10,9 +10,10 @@ pub struct Cli {
     #[command(subcommand)]
     pub command: Command,
 
-    /// Spec version to validate against
-    #[arg(long, global = true, default_value = "both")]
-    pub spec: Spec,
+    /// Spec version to validate against. Defaults to the `spec` in `.stylrc`,
+    /// or `both` when neither is set.
+    #[arg(long, global = true)]
+    pub spec: Option<Spec>,
 
     /// Output format
     #[arg(long, global = true, default_value = "human")]
@@ -51,6 +52,23 @@ pub enum Command {
     },
     /// Run only spec validation
     Validate { file: Option<PathBuf> },
+    /// Run the language server
+    Lsp {
+        #[command(subcommand)]
+        transport: Option<LspTransport>,
+        /// Serve over stdin/stdout. Accepted for compatibility with editor
+        /// configurations that pass it explicitly; it is already the default.
+        #[arg(long)]
+        stdio: bool,
+    },
+}
+
+#[derive(Subcommand, Clone, Debug)]
+pub enum LspTransport {
+    /// Serve over stdin/stdout (the default).
+    Stdio,
+    /// Alias for `stdio`, matching the convention of `gopls serve`.
+    Serve,
 }
 
 #[derive(Clone, ValueEnum, Debug, PartialEq)]
