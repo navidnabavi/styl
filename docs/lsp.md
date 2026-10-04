@@ -56,7 +56,7 @@ Ranges span the key through the end of the value, so a diagnostic covers the who
 
 When a rule reports a key that is *absent* — `E004` reports `layers[3].source` for a layer with no `source` — the range falls back to the nearest enclosing node that does exist, which puts the diagnostic on the layer object.
 
-Expression diagnostics are coarser. `validate_expression` carries one path for a whole expression tree, so an arity error nested deep inside an expression highlights the entire property value rather than the offending sub-expression.
+Expression diagnostics are precise too: `validate_expression` appends an `[n]` segment per level of descent, so an arity error nested inside a `case` or `interpolate` highlights the offending sub-expression rather than the whole property value.
 
 ## Configuration
 
