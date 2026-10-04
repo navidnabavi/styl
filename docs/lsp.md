@@ -48,7 +48,7 @@ Two synthetic codes exist for failures that precede rule evaluation:
 | Code | Meaning |
 |------|---------|
 | `syntax` | The buffer is not valid JSON. Positioned at the parse error. |
-| `shape` | Valid JSON that does not deserialize into a style. Positioned at the document start. |
+| `shape` | Valid JSON that does not match the style schema. Positioned at the offending field. |
 
 ### Range precision
 

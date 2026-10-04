@@ -6,7 +6,7 @@ use styl::{cli, diagnostic, formatter, linter, span, style, validator};
 use cli::{Cli, Command, OutputFormat, Spec};
 use diagnostic::{render_github, render_html, render_human, render_json};
 use linter::config::{discover_config, load_config, Config};
-use style::Style;
+use style::{parse_style, Style};
 
 fn main() {
     let cli = Cli::parse();
@@ -56,34 +56,25 @@ fn run(cli: &Cli) -> i32 {
 
     let mut diagnostics: Vec<diagnostic::Diagnostic> = match &cli.command {
         Command::Check { .. } => {
-            let style: Style = match serde_json::from_value(value.clone()) {
+            let style = match load_style(&content, &filename) {
                 Ok(s) => s,
-                Err(e) => {
-                    eprintln!("error: style parse failed: {}", e);
-                    return 2;
-                }
+                Err(code) => return code,
             };
             let mut diags = validator::run_all(&style, &spec);
             diags.extend(linter::run_all(&style, &spec));
             diags
         }
         Command::Validate { .. } => {
-            let style: Style = match serde_json::from_value(value.clone()) {
+            let style = match load_style(&content, &filename) {
                 Ok(s) => s,
-                Err(e) => {
-                    eprintln!("error: style parse failed: {}", e);
-                    return 2;
-                }
+                Err(code) => return code,
             };
             validator::run_all(&style, &spec)
         }
         Command::Lint { fix, .. } => {
-            let style: Style = match serde_json::from_value(value.clone()) {
+            let style = match load_style(&content, &filename) {
                 Ok(s) => s,
-                Err(e) => {
-                    eprintln!("error: style parse failed: {}", e);
-                    return 2;
-                }
+                Err(code) => return code,
             };
             let diags = linter::run_all(&style, &spec);
             if *fix {
@@ -92,12 +83,9 @@ fn run(cli: &Cli) -> i32 {
                     Err(code) => return code,
                 }
                 // Re-lint after fixes to get remaining diagnostics for exit code
-                let fixed_style: Style = match serde_json::from_value(value.clone()) {
+                let fixed_style = match load_style(&span_source, &filename) {
                     Ok(s) => s,
-                    Err(e) => {
-                        eprintln!("error: style parse after fix failed: {}", e);
-                        return 2;
-                    }
+                    Err(code) => return code,
                 };
                 linter::run_all(&fixed_style, &spec)
             } else {
@@ -151,6 +139,23 @@ fn run(cli: &Cli) -> i32 {
     } else {
         0
     }
+}
+
+/// Deserialize a style, reporting the offending field and its source location
+/// rather than a bare serde message with no position.
+fn load_style(text: &str, filename: &str) -> Result<Style, i32> {
+    parse_style(text).map_err(|error| {
+        eprintln!("error: style parse failed {}", error);
+        let location = span::SourceMap::parse(text)
+            .range_for_path(&error.path)
+            .map(|range| {
+                let (line, column) = range.start.one_based();
+                format!("{}:{}:{}", filename, line, column)
+            })
+            .unwrap_or_else(|| filename.to_string());
+        eprintln!("  --> {}", location);
+        2i32
+    })
 }
 
 fn read_input(cli: &Cli) -> Result<(String, String), String> {

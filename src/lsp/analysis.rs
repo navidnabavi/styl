@@ -11,7 +11,7 @@ use crate::cli::Spec;
 use crate::diagnostic::{Diagnostic, Severity, TextRange};
 use crate::linter::config::{discover_config, load_config, Config};
 use crate::span::{self, SourceMap};
-use crate::{formatter, linter, style::Style, validator};
+use crate::{formatter, linter, style::parse_style, style::ShapeError, validator};
 
 const SOURCE: &str = "styl";
 const DOCS_BASE: &str = "https://github.com/navidnabavi/styl/blob/main/docs";
@@ -37,13 +37,14 @@ pub fn looks_like_style(text: &str) -> bool {
 ///
 /// `spec_override` comes from editor settings and wins over `.stylrc`.
 pub fn diagnose(text: &str, uri: &Uri, spec_override: Option<Spec>) -> Vec<LspDiagnostic> {
-    let value = match serde_json::from_str::<serde_json::Value>(text) {
-        Ok(value) => value,
-        Err(error) => return vec![syntax_diagnostic(&error, text)],
-    };
-    let style = match serde_json::from_value::<Style>(value) {
+    // Check that it is JSON at all first, so a syntax error is reported as one
+    // rather than as a schema complaint about whatever serde reached first.
+    if let Err(error) = serde_json::from_str::<serde_json::Value>(text) {
+        return vec![syntax_diagnostic(&error, text)];
+    }
+    let style = match parse_style(text) {
         Ok(style) => style,
-        Err(error) => return vec![shape_diagnostic(&error)],
+        Err(error) => return vec![shape_diagnostic(&error, text)],
     };
 
     let config = resolve_config(uri).unwrap_or_default();
@@ -196,12 +197,15 @@ fn syntax_diagnostic(error: &serde_json::Error, text: &str) -> LspDiagnostic {
     }
 }
 
-/// The JSON is valid but does not deserialize into a `Style`.
-fn shape_diagnostic(error: &serde_json::Error) -> LspDiagnostic {
-    // `from_value` discards positions, so this can only land on the document
-    // start. Recovering a range would mean deserializing from text with spans.
-    LspDiagnostic {
-        range: LspRange {
+/// The JSON is valid but does not match the style schema.
+fn shape_diagnostic(error: &ShapeError, text: &str) -> LspDiagnostic {
+    // The field path comes from `serde_path_to_error` in exactly the syntax the
+    // rules use, so it resolves against the source map like any other
+    // diagnostic. A root-level fault has no path and lands on the document.
+    let range = SourceMap::parse(text)
+        .range_for_path(&error.path)
+        .map(to_lsp_range)
+        .unwrap_or(LspRange {
             start: LspPosition {
                 line: 0,
                 character: 0,
@@ -210,12 +214,15 @@ fn shape_diagnostic(error: &serde_json::Error) -> LspDiagnostic {
                 line: 0,
                 character: 0,
             },
-        },
+        });
+
+    LspDiagnostic {
+        range,
         severity: Some(DiagnosticSeverity::ERROR),
         code: Some(NumberOrString::String("shape".to_string())),
         code_description: None,
         source: Some(SOURCE.to_string()),
-        message: format!("style does not match the schema: {}", error),
+        message: format!("style does not match the schema: {}", error.message),
         related_information: None,
         tags: None,
         data: None,
@@ -318,6 +325,20 @@ mod tests {
         assert_eq!(missing.range.start.line, 7);
         assert_eq!(missing.severity, Some(DiagnosticSeverity::ERROR));
         assert!(missing.code_description.is_some());
+    }
+
+    #[test]
+    fn shape_errors_point_at_the_offending_field() {
+        let text = "{\n  \"version\": 8,\n  \"sources\": {},\n  \"layers\": [\n    { \"id\": \"a\", \"type\": \"fill\", \"minzoom\": \"five\" }\n  ]\n}";
+        let diagnostics = diagnose(text, &uri("file:///s.json"), None);
+        assert_eq!(diagnostics.len(), 1);
+        assert_eq!(
+            diagnostics[0].code,
+            Some(NumberOrString::String("shape".to_string()))
+        );
+        // The bad `minzoom` is on line 5, not line 1.
+        assert_eq!(diagnostics[0].range.start.line, 4);
+        assert!(diagnostics[0].message.contains("expected f64"));
     }
 
     #[test]
