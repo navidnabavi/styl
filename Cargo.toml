@@ -20,7 +20,7 @@ path = "src/main.rs"
 [dependencies]
 chrono     = { version = "0.4", features = ["serde"] }
 clap       = { version = "4", features = ["derive"] }
-csscolorparser = "0.8"
+csscolorparser = "0.9"
 geojson    = "1"
 html-escape = "0.2"
 indexmap   = { version = "2", features = ["serde"] }
