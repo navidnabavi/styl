@@ -16,6 +16,8 @@ cargo run -- lint --fix style.json    # autofix safe issues in-place (W004, W007
 cargo run -- fmt style.json        # format in-place
 cargo run -- fmt --check style.json  # CI check (exit 1 if would change)
 cargo run -- check --format json style.json  # machine-readable output
+cargo run -- lsp                   # language server over stdio
+cargo build --no-default-features  # verify the crate builds without the lsp feature
 ```
 
 ## Development Flow
@@ -37,14 +39,37 @@ Documents must be updated after any change in rules (format, validate and lint)
 
 Dual crate: `src/lib.rs` exposes the public API as `styl`; `src/main.rs` is the CLI binary (`styl`).
 
-**Data flow:** JSON → `serde_json::Value` → `Style` (typed structs) → validators/linters → `Vec<Diagnostic>` → renderer → stdout.
+**Data flow:** JSON → `serde_json::Value` → `Style` (typed structs) → validators/linters → `Vec<Diagnostic>` → span resolution → renderer → stdout.
 
 ### Core types
 
-- `src/diagnostic/` — `Diagnostic { severity, code, path, message, hint }` + four renderers (`render_human`, `render_json`, `render_github`, `render_html`). All validators/linters produce `Vec<Diagnostic>`.
+- `src/diagnostic/` — `Diagnostic { severity, code, path, message, hint, range }` + four renderers (`render_human`, `render_json`, `render_github`, `render_html`). All validators/linters produce `Vec<Diagnostic>`.
 - `src/style/types.rs` — `Style` root struct + all `Source` variants (vector, raster, raster-dem, geojson, image, video). Uses `indexmap::IndexMap` for sources to preserve insertion order.
 - `src/style/layer.rs` — `Layer` struct + `LayerType` enum (11 variants, `color-relief` is MapLibre-only). Paint/layout stored as `serde_json::Value` for flexible validation.
 - `src/style/expression.rs` — `validate_expression(value, path, depth)` recursively validates expression operator arity and emits W006 at depth > 20.
+
+### Span resolution
+
+`src/span.rs::SourceMap` maps a diagnostic's JSON `path` back to a byte range in the original text, then to a zero-based line and UTF-16 column.
+
+The scanner builds its keys with the **same string concatenation the validators use** (`.` for object keys, `[n]` for array indices), so lookup is an exact `HashMap` hit and no path parsing happens. This is what makes a source id containing a delimiter work: `openmaptiles.v3` yields `sources.openmaptiles.v3` on both sides and matches, where splitting on `.` would not.
+
+- `resolve_or_parent` strips trailing path segments until something resolves, so rules reporting an *absent* key (E004's `layers[3].source`) land on the enclosing object with no per-code special casing.
+- Parsing is tolerant and never panics — the language server indexes buffers mid-edit.
+- `span::resolve_ranges(&mut diags, &map)` fills in `Diagnostic::range`. Rules never set it.
+- `tests/span_test.rs::every_fixture_diagnostic_path_resolves_exactly` asserts every path any rule emits over `tests/fixtures/` resolves **exactly**. A new rule inventing a path shape the scanner cannot produce fails this test rather than silently degrading to a parent range. Codes that deliberately report an absence go in that test's `ABSENCE_CODES`.
+
+### Language server
+
+`src/lsp/` — `styl lsp` serves LSP over stdio from the same binary, so an editor and CI run identical analysis.
+
+- `mod.rs` — `serve()`, `serve_connection()`, the message loop, handlers. **stdout is the JSON-RPC transport: nothing reachable from here may print to it.** All operator output goes to stderr. The library is clean of `print!` — keep it that way.
+- `analysis.rs` — style detection, diagnostics, formatting, `.stylrc` resolution, `file:` URI decoding.
+- Behind the default-on `lsp` Cargo feature, so library consumers can use `default-features = false`.
+- Documents are keyed by **URI string**, not `Uri`: `lsp_types::Uri` hashes via `as_str()` but carries a `Cell` internally, which `clippy::mutable_key_type` rejects as a map key.
+- `serve()` must `drop(connection)` before `io_threads.join()` — the writer thread lives until the last `Sender` drops, so joining first hangs forever. This only reproduces over real stdio, not `Connection::memory()`.
+- Style detection is content-based (`version == 8` plus `layers` or `sources`) and **sticky** per document. Never key off the filename: `styles.json` design-token files are common, and attaching to all JSON would squiggle `package.json`.
+- `tests/lsp_test.rs` drives the server over `Connection::memory()` — no process spawning.
 
 ### Validators (E-codes, spec violations)
 
@@ -78,6 +103,8 @@ Requires `serde_json` `preserve_order` feature (in Cargo.toml) so `IndexMap`-bac
 - **Fixable rules**: must be added to BOTH `run_all` and `run_fixes` in `src/linter/mod.rs`. `run_all` detects; `run_fixes` applies.
 - **GeoJSON source** has no `minzoom` field (only `maxzoom`). Don't add minzoom validation there.
 - **ref layers**: exempt from E004 (source required) and E019 (type required) — they inherit from parent.
+- **Diagnostic paths must be real**: a path has to name a node that exists in the document, because `SourceMap` resolves it to a range. Do not append a segment the JSON does not have.
+- **Spec precedence** is `--spec` flag → `.stylrc` `spec` → `Spec::Both`, resolved once in `main.rs` and identically in `lsp/analysis.rs`. `Cli::spec` is `Option<Spec>` precisely so an explicit flag is distinguishable from a default.
 
 ### Exit codes
 
@@ -90,6 +117,7 @@ When fixing a known gap or adding a validator/linter rule, update the relevant d
 - New W-code → `docs/linter.md`
 - New autofix on a W-code → `docs/linter.md` (Autofix section)
 - Formatter key order change → `docs/formatter.md`
+- New LSP capability or setting → `docs/lsp.md`
 - After fixing a gap → remove it from Known Gaps in both `CLAUDE.md` and `docs/validators.md`
 
 ## Publishing

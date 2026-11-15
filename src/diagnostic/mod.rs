@@ -7,6 +7,32 @@ pub struct Diagnostic {
     pub message: String,
     pub path: String,
     pub hint: Option<String>,
+    /// Source location of `path`, when it could be resolved against the original
+    /// text. Rules never set this; it is filled in afterwards by
+    /// [`crate::span::resolve_ranges`].
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub range: Option<TextRange>,
+}
+
+/// A zero-based line and UTF-16 column, matching LSP's default position encoding.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+pub struct Position {
+    pub line: u32,
+    pub character: u32,
+}
+
+/// A half-open range of text.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+pub struct TextRange {
+    pub start: Position,
+    pub end: Position,
+}
+
+impl Position {
+    /// One-based line and column, for display to humans.
+    pub fn one_based(&self) -> (u32, u32) {
+        (self.line + 1, self.character + 1)
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -25,6 +51,7 @@ impl Diagnostic {
             message: message.into(),
             path: path.into(),
             hint: None,
+            range: None,
         }
     }
 
@@ -39,6 +66,7 @@ impl Diagnostic {
             message: message.into(),
             path: path.into(),
             hint: None,
+            range: None,
         }
     }
 
@@ -49,6 +77,7 @@ impl Diagnostic {
             message: message.into(),
             path: path.into(),
             hint: None,
+            range: None,
         }
     }
 

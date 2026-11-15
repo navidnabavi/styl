@@ -66,7 +66,7 @@ fn check_value_stops(value: &Value, path: &str, diags: &mut Vec<Diagnostic>) {
                         diags.push(
                             Diagnostic::warning(
                                 "W004",
-                                format!("{}.stops", path),
+                                path,
                                 "stop values are not in ascending order",
                             )
                             .with_hint("sort stops from lowest to highest zoom/value"),

@@ -45,6 +45,7 @@ error[E003] sources.roads: vector source missing required field "url" or "tiles"
 | **Multiple output formats** | Human-readable, JSON (for tooling), GitHub Actions annotations |
 | **Config file** | Per-project `.stylrc` — per-rule severity overrides, indent settings |
 | **Stdin support** | `cat style.json \| styl check --stdin` — pipe-friendly |
+| **Language server** | `styl lsp` — diagnostics and formatting in any LSP-capable editor |
 
 ---
 
@@ -102,6 +103,18 @@ cat style.json | styl check --stdin       # read from stdin
 | `0` | Clean — no diagnostics |
 | `1` | Diagnostics found (errors or warnings) |
 | `2` | Tool error (bad JSON, I/O failure) |
+
+### Editor Integration
+
+`styl lsp` runs a language server over stdio, giving diagnostics and formatting in any LSP-capable editor. It is the same binary, so the editor and CI agree exactly.
+
+```lua
+-- Neovim
+vim.lsp.config.styl = { cmd = { 'styl', 'lsp' }, filetypes = { 'json' } }
+vim.lsp.enable('styl')
+```
+
+See [Language Server](docs/lsp.md) for Helix setup, settings, and which files it analyzes.
 
 ### CI Integration
 
@@ -161,6 +174,7 @@ indent = 4
 | [Formatter](docs/formatter.md) | Key ordering and `--check` mode |
 | [Configuration](docs/config.md) | `.stylrc` reference |
 | [Layer Properties](docs/layer-properties.md) | Valid paint/layout props per layer type |
+| [Language Server](docs/lsp.md) | `styl lsp` and editor setup |
 
 ---
 

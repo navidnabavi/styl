@@ -498,7 +498,10 @@ fn validate_operator(op: &str, args: &[Value], path: &str, depth: usize) -> Vec<
             if op == "match" && i % 2 == 1 && i + 2 < args.len() {
                 continue;
             }
-            let child_path = format!("{}/{}", path, i + 1);
+            // `i` indexes `args[1..]`, so `i + 1` is the element's real index in
+            // the expression array. The `[n]` form is what diagnostic paths use
+            // everywhere else, and what `SourceMap` can resolve.
+            let child_path = format!("{}[{}]", path, i + 1);
             diags.extend(validate_expression(arg, &child_path, depth + 1));
         }
     }

@@ -28,6 +28,24 @@ pub struct Config {
 }
 
 impl Config {
+    /// The configured spec, if `spec` was set to a recognized value.
+    ///
+    /// An unrecognized value yields `None` so the caller falls back to its own
+    /// default rather than silently validating against the wrong spec.
+    pub fn resolved_spec(&self) -> Option<crate::cli::Spec> {
+        Self::parse_spec(self.spec.as_deref()?)
+    }
+
+    /// Parse a spec name as accepted by `.stylrc` and by editor settings.
+    pub fn parse_spec(name: &str) -> Option<crate::cli::Spec> {
+        match name.to_ascii_lowercase().as_str() {
+            "maplibre" => Some(crate::cli::Spec::Maplibre),
+            "mapbox" => Some(crate::cli::Spec::Mapbox),
+            "both" => Some(crate::cli::Spec::Both),
+            _ => None,
+        }
+    }
+
     /// Apply severity overrides to diagnostics. Rules mapped to "off" are removed,
     /// "error" overrides upgrade warnings/info to errors, "warn" downgrades errors to warnings.
     pub fn apply_severity(&self, diags: &mut Vec<crate::diagnostic::Diagnostic>) {
@@ -91,6 +109,17 @@ pub fn load_config(path: &Path) -> Result<Config, String> {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn resolved_spec_reads_the_config_field() {
+        use super::*;
+        let mut config = Config::default();
+        assert_eq!(config.resolved_spec(), None);
+        config.spec = Some("MapLibre".to_string());
+        assert_eq!(config.resolved_spec(), Some(crate::cli::Spec::Maplibre));
+        config.spec = Some("nonsense".to_string());
+        assert_eq!(config.resolved_spec(), None);
+    }
+
     use super::*;
 
     #[test]

@@ -5,6 +5,8 @@
 ## Example
 
 ```toml
+spec = "maplibre"
+
 [rules]
 W002 = "off"
 W011 = "error"
@@ -23,6 +25,16 @@ To use an explicit config path:
 ```bash
 styl check --config /path/to/.stylrc style.json
 ```
+
+## `spec`
+
+Which style spec to validate against, for every invocation in this project.
+
+```toml
+spec = "maplibre"    # "maplibre", "mapbox", or "both" (default)
+```
+
+An explicit `--spec` on the command line outranks this. An unrecognized value is ignored and the default is used, rather than silently validating against the wrong spec. The [language server](lsp.md) resolves `spec` the same way, so an editor and a pipeline always agree.
 
 ## `[rules]`
 

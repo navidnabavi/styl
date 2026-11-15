@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - name: Install Rust 1.82
+      - name: Install Rust 1.89 (MSRV from Cargo.toml)
         uses: dtolnay/rust-toolchain@1.89
       - name: Build
         run: cargo build

@@ -51,6 +51,19 @@ styl fmt --check style.json         # exit 1 if formatting would change (CI)
 
 `--check` does not modify the file. Use it in CI to enforce consistent formatting.
 
+### `lsp`
+
+Run the language server over stdin/stdout.
+
+```bash
+styl lsp           # serve over stdio
+styl lsp stdio     # explicit
+styl lsp serve     # alias
+styl lsp --stdio   # accepted for editor configs that pass it
+```
+
+Takes no input file, and ignores the global options — the server resolves its own settings from the editor and from `.stylrc`. See [Language Server](lsp.md).
+
 ## Global Options
 
 ### `--spec <SPEC>`
@@ -59,8 +72,11 @@ Which style spec to validate against.
 
 | Value | Description |
 |-------|-------------|
-| `maplibre` | MapLibre GL Style Spec v8 (default) |
+| `both` | Flag anything unsupported by either spec (default) |
+| `maplibre` | MapLibre GL Style Spec v8 |
 | `mapbox` | Mapbox GL Style Spec v8 |
+
+When the flag is omitted, the `spec` key in [`.stylrc`](config.md) is used; with neither set, the default is `both`. An explicit flag always outranks the config file.
 
 ### `--format <FORMAT>`
 
@@ -70,7 +86,7 @@ Output format for diagnostics.
 |-------|-------------|
 | `human` | Colored, human-readable (default) |
 | `json` | Machine-readable JSON array |
-| `github` | GitHub Actions `::error` / `::warning` annotations |
+| `github` | GitHub Actions `::error` / `::warning` annotations, anchored to the offending line |
 | `html` | Self-contained HTML report with dark theme and collapsible sections |
 
 **HTML output** groups diagnostics by severity (errors → warnings → info), then by code. Each group is collapsible via native `<details>/<summary>`. No external dependencies — single file, inline CSS.
@@ -87,10 +103,16 @@ styl check style.json --format html > report.html
     "code": "E006",
     "path": "layers[2].paint.line-width",
     "message": "\"line-width\" is not a valid paint property for \"fill\" layers",
-    "hint": null
+    "hint": null,
+    "range": {
+      "start": { "line": 11, "character": 6 },
+      "end": { "line": 11, "character": 27 }
+    }
   }
 ]
 ```
+
+`range` is present whenever the diagnostic's path could be resolved back to the source text. Lines and characters are **zero-based**, and characters are counted in UTF-16 code units, matching the Language Server Protocol. Human output renders the same position one-based as `file:line:column`.
 
 ### `--config <PATH>`
 

@@ -14,7 +14,9 @@ pub trait LintRule {
         None
     }
     fn check(&self, style: &Style) -> Vec<Diagnostic>;
-    /// Apply an in-place fix to the raw JSON value. Only called when `is_fixable()` is true.
+    /// Apply an in-place fix to the raw JSON value. Only called when
+    /// `is_fixable()` is true. Need not report whether it changed anything —
+    /// `run_fixes` determines that by comparing the document.
     fn fix(&self, _value: &mut serde_json::Value) {}
     /// Whether this rule can automatically fix the issues it detects.
     fn is_fixable(&self) -> bool {
@@ -72,12 +74,55 @@ pub fn run_fixes(value: &mut serde_json::Value, spec: &crate::cli::Spec) -> Vec<
     rules
         .into_iter()
         .filter(|r| r.spec_affinity().is_none_or(|a| a.conflicts_with(spec)) && r.is_fixable())
-        .map(|r| {
-            let code = r.code();
+        .filter_map(|r| {
+            // Report what actually changed rather than what ran. Comparing the
+            // document before and after keeps every rule honest without asking
+            // each `fix` to track its own mutations, where one forgetting the
+            // flag would silently misreport.
+            //
+            // Caveat: `serde_json::Map` compares order-insensitively under
+            // `preserve_order`, so a fix that only reordered object keys would
+            // look like a no-op. None do; array reordering is caught, because
+            // arrays are `Vec`.
+            let before = value.clone();
             r.fix(value);
-            code
+            (*value != before).then_some(r.code())
         })
         .collect()
+}
+
+#[cfg(test)]
+mod fix_reporting_tests {
+    use crate::cli::Spec;
+
+    /// A document with one fixable problem must report that one code, not every
+    /// fixable rule that happened to run.
+    #[test]
+    fn run_fixes_reports_only_rules_that_changed_something() {
+        let mut value: serde_json::Value = serde_json::json!({
+            "version": 8,
+            "sources": {},
+            "layers": [{
+                "id": "l",
+                "type": "line",
+                "source": "s",
+                "paint": { "line-dasharray": [0, 0] }
+            }]
+        });
+
+        let fixed = super::run_fixes(&mut value, &Spec::Both);
+        assert_eq!(fixed, vec!["W010"], "expected only the dasharray fix");
+    }
+
+    #[test]
+    fn run_fixes_reports_nothing_for_a_clean_document() {
+        let mut value: serde_json::Value = serde_json::json!({
+            "version": 8,
+            "sources": {},
+            "layers": []
+        });
+        assert!(super::run_fixes(&mut value, &Spec::Both).is_empty());
+    }
 }
 
 #[cfg(test)]
